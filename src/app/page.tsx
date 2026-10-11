@@ -40,7 +40,7 @@ const ld = {
 };
 
 /** Frosted glass over the silver scene, as on argent.swmansion.com. */
-const glass = "rounded-[24px] border border-white/25 bg-[rgba(58,60,66,0.38)] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.5)] backdrop-blur-2xl";
+const glass = "rounded-[24px] border border-white/70 bg-white/45 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)] backdrop-blur-2xl";
 
 export default function Home() {
   return (
@@ -57,17 +57,17 @@ export default function Home() {
             <SiteHeader />
 
             <div className="mx-auto mt-[clamp(72px,11vw,150px)] w-full max-w-[1040px] px-3">
-              <div className={`${glass} px-6 py-8 text-center text-white sm:px-12 sm:py-10`}>
-                <p className="flex items-center justify-center gap-2 text-sm text-white/80">
+              <div className={`${glass} px-6 py-8 text-center text-fg sm:px-12 sm:py-10`}>
+                <p className="flex items-center justify-center gap-2 text-sm text-muted">
                   Powered by
-                  <span className="rounded-md bg-white/90 px-2 py-0.5">
+                  <span className="rounded-md border border-black/5 bg-white px-2 py-0.5">
                     <Logo size="sm" />
                   </span>
                 </p>
                 <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-[3rem]">
                   Your AI agent builds the store. Blanxer powers it.
                 </h1>
-                <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
+                <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
                   Paste one prompt. Your agent builds your store website and puts it online.
                 </p>
               </div>
@@ -78,7 +78,7 @@ export default function Home() {
                 </div>
                 <div className={`${glass} order-first flex min-w-0 flex-col justify-center gap-3 p-4 sm:p-5 md:order-none`}>
                   <PromptBox compact />
-                  <p className="text-center text-sm text-white/90">Paste this into your AI agent.</p>
+                  <p className="text-center text-sm text-muted">Paste this into your AI agent.</p>
                 </div>
               </div>
             </div>
