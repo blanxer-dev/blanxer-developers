@@ -12,12 +12,9 @@ import { agentBuilds, blanxerPowers, DASHBOARD_URL, devLinks, HOME_DESCRIPTION, 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const features: { title: string; text: string }[] = [
-  { title: "The same checkout as Blanxer", text: "Delivery charges per place, Cash on Delivery rules, coupons, stock holds and every payment method you turned on. Nothing to rebuild, nothing to get wrong." },
-  { title: "SEO from day one", text: "Titles, descriptions and product structured data on every page. Blanxer serves the sitemap and product feed for your own domain." },
-  { title: "Fast on a phone", text: "Next.js on Cloudflare's network, images resized to AVIF and WebP, at most two fonts. The agent checks for a Lighthouse score of 90 or more." },
-  { title: "Your code, your Cloudflare", text: "The site runs on your own Cloudflare account and domain. The code is yours to keep changing with your agent." },
-  { title: "Store edits through the MCP", text: "While it builds, the agent can write product SEO, add photos, categories and coupons through the Blanxer MCP. You sign in; it never sees a password or key." },
-  { title: "Linked to your dashboard", text: "Save the site's address in Blanxer and order tracking links, delivery emails and flash-sale alerts point to your new website." },
+  { title: "Same checkout", text: "Payments, coupons and delivery work just like your Blanxer store." },
+  { title: "Found on Google", text: "SEO is built in from the first page." },
+  { title: "Yours to keep", text: "Your code, your Cloudflare, your domain." },
 ];
 
 const payments = ["Cash on Delivery", "eSewa", "Khalti", "Fonepay", "Fonepay QR", "Checkout by Fonepay", "Blanxer QR", "NPX", "Nabil card"];
@@ -71,7 +68,7 @@ export default function Home() {
                   Your AI agent builds the store. Blanxer powers it.
                 </h1>
                 <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
-                  Paste one prompt. Your agent builds a custom ecommerce website for your Blanxer store and puts it live on your own Cloudflare.
+                  Paste one prompt. Your agent builds your store website and puts it online.
                 </p>
               </div>
 
@@ -96,12 +93,11 @@ export default function Home() {
           <div className="mt-10">
             <AgentLogos />
           </div>
-          <p className="mx-auto mt-10 max-w-md text-sm text-muted">Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, Zed, Cline, or any agent that can run commands and read a web page.</p>
-        </section>
+                  </section>
 
         {/* How it works */}
         <Section id="how">
-          <Heading eyebrow="How it works" title="One prompt. A live store on your own domain." lead="You talk to your agent the way you would talk to a developer. It reads the BlanxerAPI docs by itself and asks you only what it needs." />
+          <Heading eyebrow="How it works" title="Three steps. That's it." />
           <ol className="mt-14 grid gap-5 md:grid-cols-3">
             {steps.map((s, i) => (
               <li key={s.title} className="rounded-3xl border border-border bg-surface p-6 sm:p-7">
@@ -120,7 +116,7 @@ export default function Home() {
         <Section id="powered" className="border-t border-border">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.75fr]">
             <div>
-              <Heading eyebrow="Custom front, proven engine" title="Agents build it. Blanxer powers it." lead="Your website looks like nobody else's. Behind it runs the same Blanxer that already handles your orders, so nothing about selling has to be rebuilt or trusted to new code." />
+              <Heading eyebrow="Agents build it. Blanxer powers it." title="You get the look. We handle the selling." />
               <div className="mt-10 grid gap-5 sm:grid-cols-2">
                 <Card>
                   <p className="font-mono text-xs uppercase tracking-wide text-faint">Your agent builds</p>
@@ -152,8 +148,8 @@ export default function Home() {
 
         {/* What every site gets */}
         <Section id="features" className="border-t border-border">
-          <Heading eyebrow="What every site gets" title="Built right the first time." lead="The agent follows the same rules on every store, so the parts customers pay through are never improvised." />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Heading eyebrow="Every site gets" title="Done right from day one." />
+          <div className="mt-12 grid gap-5 sm:grid-cols-3">
             {features.map((f) => (
               <Card key={f.title}>
                 <h3 className="text-lg font-semibold">{f.title}</h3>
@@ -163,8 +159,7 @@ export default function Home() {
           </div>
           <div className="mt-5 flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-semibold">Payments that already work in Nepal</p>
-              <p className="mt-1 text-sm text-muted">The methods you turn on in Blanxer show up on your site by themselves.</p>
+              <p className="shrink-0 font-semibold">Payments that just work</p>
             </div>
             <ul className="flex flex-wrap gap-2">
               {payments.map((p) => (
@@ -180,7 +175,7 @@ export default function Home() {
         <Section id="developers" className="border-t border-border">
           <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <Heading eyebrow="For developers" title="Open docs, an npm package, and an llms.txt." lead="Everything the agent reads is public, so you can read it too, build by hand, or point any other tool at it." />
+              <Heading eyebrow="For developers" title="Everything's open." lead="Read the docs, use the npm package, or build it by hand." />
               <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-surface font-mono text-[13px]">
                 <div className="border-b border-border px-4 py-2 text-xs text-faint">terminal</div>
                 <pre className="overflow-x-auto px-4 py-4 leading-relaxed text-fg">
@@ -210,7 +205,7 @@ export default function Home() {
 
         {/* FAQ */}
         <Section id="faq" className="border-t border-border">
-          <Heading eyebrow="FAQ" title="Questions merchants ask" />
+          <Heading eyebrow="FAQ" title="Questions?" />
           <div className="mt-10">
             <FaqList faqs={homeFaqs} />
           </div>
@@ -221,14 +216,14 @@ export default function Home() {
           <section className="relative mx-auto w-full max-w-[1400px] overflow-hidden rounded-[28px] bg-ink text-white">
             <Image src="/art/emblem.webp" alt="" width={1000} height={659} className="pointer-events-none absolute -bottom-20 -right-24 hidden w-[440px] max-w-none select-none opacity-30 lg:block" />
             <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-7 px-5 py-24 text-center sm:px-8">
-              <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Start your store website now.</h2>
-              <p className="max-w-xl text-lg text-white/70">Copy the prompt, paste it into your agent, and answer its questions. Signed in to Blanxer? The dashboard fills in your store for you.</p>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Ready? Copy the prompt.</h2>
+              <p className="max-w-xl text-lg text-white/70">Paste it into your agent and answer a few questions.</p>
               <div className="w-full max-w-xl">
                 <PromptBox compact />
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <a href={DASHBOARD_URL} className="inline-flex h-11 items-center rounded-full bg-white px-6 text-sm font-medium text-ink hover:bg-white/90">
-                  Open BlanxerAPI in your dashboard
+                  Open in your dashboard
                 </a>
                 <Link href="/api-docs/quickstart/" className="inline-flex h-11 items-center rounded-full border border-white/25 px-6 text-sm font-medium text-white hover:bg-white/10">
                   Read the quickstart
