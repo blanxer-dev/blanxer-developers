@@ -40,7 +40,7 @@ const ld = {
 };
 
 /** Frosted glass over the silver scene, as on argent.swmansion.com. */
-const glass = "rounded-[24px] border border-white/70 bg-white/45 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)] backdrop-blur-2xl";
+const glass = "rounded-[24px] border border-white/60 bg-white/20 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.3)] backdrop-blur-md";
 
 export default function Home() {
   return (
