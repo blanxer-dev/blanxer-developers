@@ -11,9 +11,9 @@ export const DOCS_REPO = "https://github.com/blanxer-dev/blanxer-developers";
 export const LLMS_URL = `${SITE_URL}/llms.txt`;
 export const DASHBOARD_URL = "https://app.blanxer.com/dashboard/blanxer-api";
 
-export const HOME_TITLE = "Build your ecommerce website with Claude Code, Codex or any AI agent";
+export const HOME_TITLE = "Build an Ecommerce Website in Nepal with Claude, ChatGPT or Gemini";
 export const HOME_DESCRIPTION =
-  "Paste one prompt into Claude Code, Codex, Cursor or Gemini CLI. Your agent builds a custom Next.js store for your Blanxer shop and deploys it to your own Cloudflare account. Blanxer powers products, stock, checkout, payments and delivery.";
+  "Build your online store in Nepal with AI. Paste one prompt into Claude, ChatGPT or Gemini and get a fast website with eSewa, Khalti and COD, powered by Blanxer.";
 
 /** The one line a merchant pastes into their agent. The dashboard's BlanxerAPI page uses the same words. */
 export const buildPrompt = (subdomain: string) =>
@@ -25,6 +25,14 @@ export type Faq = { q: string; a: string };
 
 export const homeFaqs: Faq[] = [
   {
+    q: "How do I make an ecommerce website in Nepal with AI?",
+    a: "Open an AI coding agent such as Claude Code, Codex (with your ChatGPT account) or Gemini CLI in an empty folder and paste the prompt above. It builds your store website, connects it to Blanxer and puts it online on your own Cloudflare account.",
+  },
+  {
+    q: "Does it work with eSewa, Khalti and Cash on Delivery?",
+    a: "Yes. The checkout is Blanxer's own, so eSewa, Khalti, Fonepay, NPX, cards and Cash on Delivery work as on your Blanxer store, with delivery through Pathao, Nepal Can Move, Dash and other couriers.",
+  },
+  {
     q: "What is BlanxerAPI?",
     a: "A way to get your own custom website without hiring a developer. Your AI agent builds it, and Blanxer keeps running your shop behind it.",
   },
@@ -33,12 +41,12 @@ export const homeFaqs: Faq[] = [
     a: "No. Paste the prompt, tell the agent how you want the site to look, and sign in to Cloudflare when it asks. That's it.",
   },
   {
-    q: "Which agents work?",
-    a: "Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, Zed, Cline, or any agent that can run commands and read a web page.",
+    q: "Can I use ChatGPT, Claude or Gemini?",
+    a: "Yes: Claude Code, Codex (signs in with ChatGPT), Gemini CLI, Cursor, GitHub Copilot, Windsurf, Zed, Cline, or any agent that can run commands and read a web page.",
   },
   {
     q: "What does it cost?",
-    a: "Nothing extra. It's included in every Blanxer plan, and Cloudflare's free plan is enough for most stores. You only pay for your agent and your domain.",
+    a: "Nothing extra. It's included in every Blanxer plan, and Cloudflare's free plan is enough for most stores. You only pay for your AI agent and your domain (.com.np is free for Nepali businesses).",
   },
   {
     q: "Where do I see my orders?",

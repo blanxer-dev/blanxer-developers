@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { GITHUB_ORG, LEGAL_NAME, type Faq } from "@/lib/site";
+import { agentHref, agentPages } from "@/lib/agents";
 
 const navLinks = (
   <>
@@ -73,7 +74,15 @@ export function SiteFooter() {
             <img src="/blanxer-logo.svg" alt="Blanxer" width={94} height={26} className="h-[26px] w-auto" />
           </a>
         </div>
-        <div className="grid grid-cols-2 gap-x-14 gap-y-3 text-sm sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-14 gap-y-8 text-sm sm:grid-cols-4">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-faint">Build with</p>
+            {agentPages.map((a) => (
+              <Link key={a.slug} href={agentHref(a.slug)} className="text-muted hover:text-fg">
+                {a.name}
+              </Link>
+            ))}
+          </div>
           <div className="flex flex-col gap-3">
             <p className="text-xs font-medium uppercase tracking-wide text-faint">Build</p>
             <Link href="/api-docs/quickstart/" className="text-muted hover:text-fg">Quickstart</Link>

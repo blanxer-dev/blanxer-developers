@@ -7,39 +7,17 @@ import { PromptBox } from "@/components/PromptBox";
 import { AgentDemo } from "@/components/AgentDemo";
 import { AgentLogos } from "@/components/AgentLogos";
 import { Logo } from "@/components/Logo";
-import { agentBuilds, blanxerPowers, DASHBOARD_URL, devLinks, HOME_DESCRIPTION, homeFaqs, LEGAL_NAME, SITE_NAME, SITE_URL, steps } from "@/lib/site";
+import { couriers } from "@/lib/integrations";
+import { PaymentLogos } from "@/components/PaymentLogos";
+import { agentBuilds, blanxerPowers, DASHBOARD_URL, devLinks, HOME_DESCRIPTION, HOME_TITLE, homeFaqs, LEGAL_NAME, SITE_NAME, SITE_URL, steps } from "@/lib/site";
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+// The home title stands alone (no " | BlanxerAPI"), so the whole search phrase fits in a result.
+export const metadata: Metadata = { title: { absolute: HOME_TITLE }, alternates: { canonical: "/" } };
 
 const features: { title: string; text: string }[] = [
   { title: "Same checkout", text: "Payments, coupons and delivery work just like your Blanxer store." },
   { title: "Found on Google", text: "SEO is built in from the first page." },
   { title: "Yours to keep", text: "Your code, your Cloudflare, your domain." },
-];
-
-/** Logos are the same files the dashboard's Setting → Payment shows. Cash on Delivery has none, so it gets an icon. */
-const payments: { name: string; logo?: string; w: number; big?: boolean }[] = [
-  { name: "Cash on Delivery", w: 0 },
-  { name: "eSewa", logo: "/pay/esewa.webp", w: 320 },
-  { name: "Khalti", logo: "/pay/khalti.webp", w: 249 },
-  { name: "Fonepay", logo: "/pay/fonepay.webp", w: 333 },
-  { name: "Fonepay QR", logo: "/pay/fonepay_dynamic.webp", w: 97, big: true },
-  { name: "Checkout by Fonepay", logo: "/pay/checkout-fonepay.webp", w: 309 },
-  { name: "NPX", logo: "/pay/npx.webp", w: 218 },
-  { name: "Nabil card", logo: "/pay/ncard.webp", w: 174 },
-];
-
-/** Couriers Blanxer is already connected to (the dashboard's logistics plugins, same logo files). */
-const couriers: { name: string; logo: string; w: number; h?: number }[] = [
-  { name: "Pathao Parcel", logo: "/ship/pathao.webp", w: 274 },
-  { name: "Nepal Can Move", logo: "/ship/ncm.webp", w: 237 },
-  { name: "Dash Logistics", logo: "/ship/dash.webp", w: 260 },
-  { name: "Upaya Logistics", logo: "/ship/upaya.svg", w: 136, h: 36 },
-  { name: "Hello Service", logo: "/ship/hello_service.webp", w: 158 },
-  { name: "Pick and Drop", logo: "/ship/pickndrop.webp", w: 147 },
-  { name: "Fab Bud", logo: "/ship/fabbud.webp", w: 127 },
-  { name: "Daraz Express", logo: "/ship/daraz_express.webp", w: 164 },
-  { name: "Expo Express", logo: "/ship/expo_express.webp", w: 516 },
 ];
 
 /** Built-in marketing tools. Icons are the dashboard's plugin icons; Flash Sale has none, so it gets one here. */
@@ -54,7 +32,7 @@ const marketing: { name: string; icon?: string; logo?: string; w?: number }[] = 
 const ld = {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "Organization", "@id": "https://blanxer.com/#org", name: "Blanxer", legalName: LEGAL_NAME, url: "https://blanxer.com", logo: `${SITE_URL}/apple-touch-icon.png` },
+    { "@type": "Organization", "@id": "https://blanxer.com/#org", name: "Blanxer", legalName: LEGAL_NAME, url: "https://blanxer.com", logo: `${SITE_URL}/apple-touch-icon.png`, areaServed: { "@type": "Country", name: "Nepal" }, address: { "@type": "PostalAddress", addressLocality: "Kathmandu", addressCountry: "NP" } },
     { "@type": "WebSite", "@id": `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, publisher: { "@id": "https://blanxer.com/#org" } },
     {
       "@type": "SoftwareApplication",
@@ -64,6 +42,8 @@ const ld = {
       description: HOME_DESCRIPTION,
       url: SITE_URL,
       offers: { "@type": "Offer", price: "0", priceCurrency: "NPR", description: "Included in every Blanxer plan" },
+      areaServed: { "@type": "Country", name: "Nepal" },
+      featureList: ["Build an ecommerce website with Claude Code, Codex (ChatGPT), Gemini CLI or Cursor", "eSewa, Khalti, Fonepay and Cash on Delivery checkout", "Delivery with Pathao, Nepal Can Move, Dash and other Nepali couriers", "Deploys to your own Cloudflare account"],
       publisher: { "@id": "https://blanxer.com/#org" },
     },
     { "@type": "HowTo", name: "Build an ecommerce website with an AI agent on Blanxer", step: steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.title, text: s.text })) },
@@ -100,7 +80,7 @@ export default function Home() {
                   Your AI agent builds the store. Blanxer powers it.
                 </h1>
                 <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-                  Paste one prompt. Your agent builds your store website and puts it online.
+                  Paste one prompt into Claude, ChatGPT or Gemini. Your agent builds your ecommerce website for Nepal and puts it online.
                 </p>
               </div>
 
@@ -191,24 +171,9 @@ export default function Home() {
           </div>
           <div className="mt-5 rounded-2xl border border-border bg-surface p-6 sm:p-7">
             <p className="font-semibold">Payments that just work</p>
-            <ul className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-6">
-              {payments.map((p) => (
-                <li key={p.name} className="flex h-8 items-center" title={p.name}>
-                  {p.logo ? (
-                    <Image src={p.logo} alt={p.name} width={p.w} height={96} className={`w-auto max-w-[120px] object-contain ${p.big ? "h-12" : "h-full"}`} />
-                  ) : (
-                    <span className="flex items-center gap-2 text-sm font-medium text-[#15803d]">
-                      <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2.5" y="6" width="19" height="12" rx="2" />
-                        <circle cx="12" cy="12" r="2.6" />
-                        <path d="M6 9.5v5M18 9.5v5" />
-                      </svg>
-                      Cash on Delivery
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6">
+              <PaymentLogos />
+            </div>
           </div>
           <div className="mt-5 rounded-2xl border border-border bg-surface p-6 sm:p-7">
             <p className="font-semibold">Couriers already connected</p>

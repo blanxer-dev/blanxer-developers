@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description: HOME_DESCRIPTION,
     url: "/",
     siteName: SITE_NAME,
-    locale: "en_US",
+    locale: "en_NP",
     type: "website",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "BlanxerAPI: your AI agent builds the store, Blanxer powers it" }],
   },
