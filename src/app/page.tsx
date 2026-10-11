@@ -17,7 +17,18 @@ const features: { title: string; text: string }[] = [
   { title: "Yours to keep", text: "Your code, your Cloudflare, your domain." },
 ];
 
-const payments = ["Cash on Delivery", "eSewa", "Khalti", "Fonepay", "Fonepay QR", "Checkout by Fonepay", "Blanxer QR", "NPX", "Nabil card"];
+/** Logos are the same files the dashboard's Setting → Payment shows. Cash on Delivery has none, so it gets an icon. */
+const payments: { name: string; logo?: string; w: number }[] = [
+  { name: "Cash on Delivery", w: 0 },
+  { name: "eSewa", logo: "/pay/esewa.webp", w: 320 },
+  { name: "Khalti", logo: "/pay/khalti.webp", w: 249 },
+  { name: "Fonepay", logo: "/pay/fonepay.webp", w: 333 },
+  { name: "Fonepay QR", logo: "/pay/fonepay_dynamic.webp", w: 97 },
+  { name: "Checkout by Fonepay", logo: "/pay/checkout-fonepay.webp", w: 309 },
+  { name: "Blanxer QR", logo: "/pay/blanxer-icon-256.webp", w: 62 },
+  { name: "NPX", logo: "/pay/npx.webp", w: 218 },
+  { name: "Nabil card", logo: "/pay/ncard.webp", w: 174 },
+];
 
 const ld = {
   "@context": "https://schema.org",
@@ -157,14 +168,23 @@ export default function Home() {
               </Card>
             ))}
           </div>
-          <div className="mt-5 flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="shrink-0 font-semibold">Payments that just work</p>
-            </div>
-            <ul className="flex flex-wrap gap-2">
+          <div className="mt-5 rounded-2xl border border-border bg-surface p-6 sm:p-7">
+            <p className="font-semibold">Payments that just work</p>
+            <ul className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
               {payments.map((p) => (
-                <li key={p} className="rounded-full border border-border bg-white px-3 py-1 text-sm text-fg">
-                  {p}
+                <li key={p.name} className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white px-2 py-3 text-center">
+                  <span className="flex h-8 items-center justify-center">
+                    {p.logo ? (
+                      <Image src={p.logo} alt={`${p.name} logo`} width={p.w} height={96} className="h-full w-auto max-w-[96px] object-contain" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2.5" y="6" width="19" height="12" rx="2" />
+                        <circle cx="12" cy="12" r="2.6" />
+                        <path d="M6 9.5v5M18 9.5v5" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="text-[11.5px] leading-tight text-muted">{p.name}</span>
                 </li>
               ))}
             </ul>
