@@ -100,7 +100,7 @@ Khalti's own error text is passed through (for example a minimum amount or a con
 
 ### A Draft or POS-only product page is visible
 
-`GET /product/public/<store_id>/<slug>` also returns Draft, Inactive and POS-only products (Blanxer uses it for previews). The page must call `notFound()` unless `status === 'Active' && channel !== 3`. See [Catalog → One product](https://developers.blanxer.com/catalog.md#one-product).
+`GET /product/public/<store_id>/<slug>` also returns non-Active (`Draft`, `Archived`) and POS-only products. The page must call `notFound()` unless `status === 'Active' && channel !== 3`; the package's `getProduct()` returns `null` for them. See [Catalog → One product](https://developers.blanxer.com/catalog.md#one-product).
 
 ### A product page shows "Product not found" as an error instead of a 404
 

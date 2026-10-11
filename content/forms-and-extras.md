@@ -44,15 +44,17 @@ Content-Type: application/json
 { "data": { "full_name": "Asha Gurung", "phone": "9800000000", "email": "", "k8f2": "Retail" } }
 ```
 
+The server also accepts the values as a flat body, without `data`. Send `data`.
+
 Response: `{"success": true, "message": "<success_message or 'Submitted successfully'>"}`. Show the message.
 
 Values are keyed by field `key` and checked against the published form:
 
 | Type | Value | Rule |
 |---|---|---|
-| `full_name` (system) | string | 1–200 characters |
+| `full_name` (system) | string | 1–200 characters: `Full name is required` (`Required` when the key is missing) |
 | `phone` (system) | string | Exactly 10 digits: `Phone number must be of 10 digit` |
-| `email` (system) | string | Valid email; may be `''` unless required |
+| `email` (system) | string | Valid email; may be `''` unless required (then `Provided email address is invalid`) |
 | `text`, and any type not listed | string | ≤ 1000 |
 | `textarea` | string | ≤ 5000 |
 | `richtext` | HTML string | ≤ 50000 |
@@ -72,9 +74,11 @@ Values are keyed by field `key` and checked against the published form:
 | `multi_text` | `{ [sub_field.key]: string }` | Each ≤ 500 |
 | `heading`, `divider` | — | Layout only; don't send |
 
-- A required field that is empty fails with `<label> is required`.
+- A required custom field that is empty fails with `<label> is required`.
+- **Leave out choice fields the shopper didn't answer.** An optional `select`, `radio` or single `badges` field sent as `''` fails with `Invalid option for <label>`.
 - Errors: HTTP 400 `{"error_type":"zod_validation","fields":{"<key>":"<message>"}}`. Show each message under its field.
 - Unknown keys are dropped.
+- An unknown or unpublished form: HTTP 400 `{"message":"Form not found"}`.
 - Limit: 10 submissions per 15 minutes per IP.
 
 The package's `BlanxerForm` component renders and submits a form; style it through its class hooks.
@@ -94,8 +98,10 @@ Content-Type: application/json
 ```
 
 - `phone` or `email` (or both) is required: `A phone number or email is required`. Check the phone is 10 digits in the browser.
+- **Leave out a key that is empty.** `email: ""` fails with HTTP 400 `Invalid email`, even when `phone` is set.
+- `product_name` and `product_url` go into the alert SMS/email as sent. Send the absolute product URL on the site (`https://mystore.com/product/<slug>`), without a query string.
 - Response: `{"data": {"subscribed": true}, "message": "We'll notify you when it's back in stock."}`.
-- If the store has the feature off: `This feature is not enabled for this store.`
+- If the store has the feature off: `This feature is not enabled for this store.` Other errors: `Store not found!`, `Product not found!`.
 - Repeating the same request doesn't create a second alert.
 - This is the only `/customer/*` route a custom site uses. It needs no login. Everything else under `/customer` is off limits (rule 7).
 
@@ -112,8 +118,9 @@ POST /order/public/cancel
 
 - The shopper types the phone number used for the order. Show the placeholder `ending with <last 3 digits>` from the masked number in the tracking response.
 - Success: `{"success": true, "message": "Order cancelled successfully"}`. Reload the tracking data.
-- Wrong phone: HTTP **401** `{"fields":{"phone_number":"Provided phone number don't match with order phone number"}}`.
-- Other errors (HTTP 400 `{message}`): `Order cancellation is not available`, `Only orders in Pending or Processing status can be cancelled`, `Order not found`.
+- A phone that isn't 10 characters: HTTP 400 `{"error_type":"zod_validation","fields":{"phone_number":"Phone number must be of 10 digit"}}`, before any other check.
+- Wrong phone: HTTP **401** `{"fields":{"phone_number":"Provided phone number don't match with order phone number"}}`. The phone is checked before the status, so a wrong phone on a Delivered order is also 401.
+- Other errors (HTTP 400 `{message}`): `Store not found`, `Order cancellation is not available`, `Order not found`, `Only orders in Pending or Processing status can be cancelled`.
 - Cancelling puts the stock back and sends the store's cancellation SMS if it has one.
 - Ask "Are you sure you want to cancel this order? This action cannot be undone." first.
 
@@ -127,9 +134,11 @@ POST /order/public/submit-review
   "rating": 5, "review": "Lovely colour, fast delivery.", "phone_number": "9800000000" }
 ```
 
-- `rating` is 1–5. `review` is up to 1000 characters.
+- `rating` is 1–5; send a whole number (the server doesn't enforce it). `review` is up to 1000 characters.
+- `phone_number` must be 10 characters, else HTTP 400 `{"error_type":"zod_validation","fields":{"phone_number":"Phone number must be of 10 digit"}}`.
 - Success: `{"success": true, "message": "Review recorded successfully", "rating": 5, "review": "..."}`.
-- Wrong phone: HTTP **401** `{"fields":{"phone_number":"..."}}`. Already reviewed: `Product has already been reviewed`.
+- Wrong phone: HTTP **401** `{"fields":{"phone_number":"..."}}`.
+- Other errors (HTTP 400 `{message}`): `Order item not found` (no such order, or another store's), `Product has already been reviewed`, `Provided product not found in the following order`, `Selected product not found`.
 - The review is published as a verified purchase and counts in the product's `total_rating` / `review_count`.
 
 The package's `OrderTracking` component includes both the cancel and review flows.
@@ -141,9 +150,13 @@ If the store has published posts, add `/blogs` and `/blog/[slug]`. Blanxer's sit
 ### List
 
 ```http
-GET /public/blog/<store_id>?limit=12&cursor=<next_cursor>&category=<slug>&tag=<tag>&q=<text>
+GET /public/blog/<store_id>?limit=12&cursor=<next_cursor>&category=<slug>&tag=<tag>&author=<user id>&q=<text>
 GET /public/blog/<store_id>/category/<category_slug>
+GET /public/blog/<store_id>/tag/<tag>
+GET /public/blog/<store_id>/author/<author user id>
 ```
+
+The `category`, `tag` and `author` routes take the same query parameters as the list (`limit`, `cursor`, `tag`, `q`, `author`, `category`); the path value wins over the query.
 
 ```json
 {
@@ -156,8 +169,9 @@ GET /public/blog/<store_id>/category/<category_slug>
 }
 ```
 
-- `limit` is 1–50, default 12. Pass `next_cursor` back as `cursor` for the next page.
-- `all_categories` lists every category with live posts, for filter chips. `/blogs?category=<slug>` is in Blanxer's sitemap, so support the query parameter.
+- `limit` is clamped to 1–50, default 12. Pass `next_cursor` back as `cursor` for the next page.
+- `q` matches the post name or excerpt (case-insensitive). `author` is the author's user id (`author.user`).
+- `all_categories` lists every category with live posts, for filter chips. Blanxer's sitemap lists `/blogs?category=<slug>` for every blog category in `check_domain.blog_categories`, even empty ones, so support the query parameter and show an empty state.
 
 ### One post
 

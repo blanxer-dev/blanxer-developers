@@ -10,8 +10,8 @@ Products, variants, stock, categories, brands, search, sale and flash sales. All
 | A page of products | `GET /product/p/public/<store_id>?page=1&per_page=30&sort_by=created_at&sort_order=desc` | `{success, meta, products}` |
 | One product | `GET /product/public/<store_id>/<slug>` | Full product (see below). `<slug>` may also be the product `_id`. |
 | A category | `GET /product/public/<store_id>/category/<slug>` | `{category, products}` |
-| New arrivals | `GET /product/public/<store_id>/category/new-arrivals` | `{category: {_id: 1, name: "New Arrivals", slug: "new-arrivals"}, products}`: the 12 newest products |
-| Search | `GET /product/public/search/<store_id>?q=<text>` | Array of list items, at most 50 |
+| New arrivals | `GET /product/public/<store_id>/category/new-arrivals` | `{category: {_id: 1, name: "New Arrivals", slug: "new-arrivals"}, products}`: up to 12 of the newest products |
+| Search | `GET /product/public/search/<store_id>?q=<text>` | Array of list items, up to 50 |
 | On sale | `GET /product/public/sale/<store_id>` | Array of list items |
 | All brands | `GET /brand/public/all/<store_id>` | `{brands}` |
 | A brand's products | `GET /brand/public/products/<store_id>/<slug>` | `{brand, products}` |
@@ -21,17 +21,25 @@ Products, variants, stock, categories, brands, search, sale and flash sales. All
 
 Categories are not an endpoint: they come with the store in `check_domain.categories` (see [Store and theme](https://developers.blanxer.com/store-and-theme.md)).
 
-Errors are HTTP 400 `{"message": "..."}`: `Product not found`, `Category not found`, `Brand not found`.
+There is also `GET /product/public/barcode/<store_id>?code=<barcode>` (looks a product up by barcode). A custom site rarely needs it.
+
+Errors:
+
+- HTTP 400 `{"message": "..."}`: `Product not found`, `Category not found`, `Brand not found`.
+- HTTP 400 `{"error_type":"zod_validation","fields":{...}}` for a malformed id on search, sale, the paged list, brands and flash sales.
+- HTTP 500 `{"errors":{"message":"Cast to ObjectId failed..."}}` for a malformed `store_id` on all products, a category and one product. Always pass the `_id` from `check_domain`.
+- A well-formed but unknown store id is not an error: `[]` from the lists, `{category: false, products: []}` from a category.
 
 ### Server-side caching
 
-- The API caches the product lists, category lists and `check_domain` for up to 1 hour, and clears them when the merchant changes the store's products, categories or settings.
-- Product detail is not cached by the API.
+- The API caches only three catalog reads for up to 1 hour: all products, the paged list and a category (new arrivals included). It also caches `check_domain`. It clears them when the merchant changes the store's products, categories or settings.
+- Orders don't clear the cache, so stock and `in_stock` in those lists can be up to 1 hour old. The product page and the server's order check always use current stock.
+- Product detail, search, sale and brands are not cached by the API.
 - The package adds `next: { revalidate: 60 }`. Store changes show on the site within about a minute, without a redeploy.
 
 ## List items
 
-Every list endpoint (all products, page, category, search, sale, brand products) returns the same item shape:
+Every list endpoint (all products, page, category, search, sale, brand products, similar products) returns this item shape. Each loads a slightly different set of fields; the differences are listed below the example.
 
 ```json
 {
@@ -47,7 +55,7 @@ Every list endpoint (all products, page, category, search, sale, brand products)
   "quantity": 14,
   "total_variants": 6,
   "channel": 1,
-  "variants": [{ "_id": "...", "price": 2500, "compare_at_price": 0, "quantity": 4 }],
+  "variants": [{ "price": 2500, "compare_at_price": 0, "quantity": 4, "inventory_summary": [] }],
   "total_rating": 18,
   "review_count": 4,
   "image_urls": ["https://.../shawl-1.jpg"],
@@ -62,10 +70,17 @@ Every list endpoint (all products, page, category, search, sale, brand products)
 }
 ```
 
-- **Price:** a product without variants has `price`. A product with variants has either `price` (all variants cost the same) or `min_price` / `max_price` with `price: null`. Show "Rs 2,500 – 3,200" for a range.
+- **Price:** a product without variants has `price`. A product with variants has either `price` or `min_price` / `max_price` with `price: null`. Show "Rs 2,500 – 3,200" for a range. `price` is set (and min/max are null) when all variants cost the same, and also when any variant's price is 0 or missing; then `price` is the highest variant price.
 - **`compare_at_price`** above the price means the product is discounted; show it struck through.
-- **`categories`** here are category **names**, not ids.
-- **`brand`** is a full `{_id, name, slug, logo}` object on the category, new-arrivals and search endpoints. The sale endpoint returns only the brand id. "All products", the paged list and brand products leave it out.
+- **`categories`** here are category **names**, not ids. Exception: on the category endpoint (not new arrivals) they are `{_id, name, slug}` objects.
+- **`brand`** is `{_id, name, slug, logo}` on the category, new-arrivals and sale endpoints, and `{name, slug, logo}` (no `_id`) on search. All products, the paged list, brand products and similar products leave it out. It is never a plain id.
+- **`quantity`:** with variants, the sum of the positive variant stock; without variants, the product's own quantity (it can be 0 or below).
+- **`variants`** carry `price`, `compare_at_price`, `quantity` and `inventory_summary`. Only search results add `_id` and `option_name`. Get variant ids from the product endpoint.
+- **Differences per endpoint:**
+  - category, new arrivals, search and similar products don't load `continue_selling`, so their `in_stock` is stock only;
+  - `release_date` is only on category, search and brand products;
+  - search results have no `total_rating` / `review_count`, and add `score` (relevance);
+  - similar products have no `channel`.
 - **Rating:** `total_rating` is a sum. Average = `total_rating / review_count`.
 - **`in_stock`** is described under [Stock](#stock).
 
@@ -91,11 +106,12 @@ Every list endpoint (all products, page, category, search, sale, brand products)
 ### Search
 
 - `q` must be at least 3 characters; shorter queries return `[]` (no error).
-- It is an autocomplete search over a key built from the product name, its category names, colours, sizes and tags (tags containing `:` are left out). Best match first, up to 50 results, Active and non-POS only.
+- It is an autocomplete search over a key built from the product name, its category names, colours, sizes and tags (tags containing `:` are left out). Best match first, Active and non-POS only.
+- The limit of 50 is applied **before** the Active/non-POS filter, so a search can return fewer than 50 even when more products match. (One store has a higher limit.)
 
 ### Sale
 
-`/product/public/sale/<store_id>` returns Active, non-POS products with a `compare_at_price` above 0 on the product or on any variant.
+`/product/public/sale/<store_id>` returns Active, non-POS products with a `compare_at_price` above 0 on the product or on any variant. (Before the BlanxerAPI backend release it returned `[]` on stores with advanced inventory.)
 
 ## One product
 
@@ -107,7 +123,7 @@ Every list endpoint (all products, page, category, search, sale, brand products)
 | `description`, `long_description` | **HTML** from Blanxer's editor. Sanitize before rendering. |
 | `price`, `compare_at_price`, `quantity`, `weight`, `sku`, `barcode`, `continue_selling` | Product-level values. For a product with variants, use the variant's. |
 | `colors`, `sizes` | Empty when the product has no variants |
-| `variants[]` | `_id`, `option_name`, `price`, `compare_at_price`, `quantity`, `sku`, `weight`, `image_url`, `barcode` |
+| `variants[]` | `_id`, `option_name`, `price`, `compare_at_price`, `quantity`, `sku`, `weight`, `image_url`, `barcode`, and also `alt_barcode`, `exim_code`, `tigg_id`, `inventory_summary` |
 | `image_urls[]` | Absolute image URLs |
 | `categories[]` | Category **ids** (match them against `check_domain.categories`) |
 | `brand` | `{_id, name, slug, logo}` or missing |
@@ -115,11 +131,11 @@ Every list endpoint (all products, page, category, search, sale, brand products)
 | `custom_fields` | Inputs the shopper fills; see [Checkout → Custom fields](https://developers.blanxer.com/checkout.md#custom-fields) |
 | `seo_title`, `seo_description`, `seo_image` | See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md) |
 | `total_rating`, `review_count`, `reviews[]` | Reviews: `rating`, `review`, `images`, `customer_name`, `verified_purchase`, `created_at`, newest first |
-| `similar_products[]` | List items (Active only) |
-| `csrf_token` | Send with custom-field image uploads |
+| `similar_products[]` | List items: Active only, but may include POS-only products; no `channel` |
+| `csrf_token` | Send with custom-field image uploads (accepted, but not checked by the server today) |
 | `release_date`, `created_at`, `updated_at` | |
 
-> **Warning: this endpoint also returns Draft, Inactive and POS-only products.** Blanxer's dashboard uses it to preview drafts. Your product page must show a 404 unless `status === 'Active'` and `channel !== 3`:
+> **Warning: this endpoint also returns non-Active and POS-only products.** `status` is `Active`, `Draft` or `Archived` (`''` when never set). Your product page must show a 404 unless `status === 'Active'` and `channel !== 3`. The package's `getProduct()` already returns `null` for those:
 >
 > ```ts
 > import { notFound } from 'next/navigation';
@@ -146,7 +162,7 @@ Each variant's `option_name` is built from the options:
 | Colours only | `"<colour>"` |
 
 - A colour may carry a swatch code after the **first** colon: `"Maroon:#7a1f2b"`, or a two-tone `"Black:#111111|#e8a200"`. The display name is the part before the colon. The `option_name` uses the display name (`"Maroon/Large"`).
-- A colour name can contain `/`. Split an `option_name` against the known colour and size lists (longest colour first), not on the first slash.
+- A colour or size name can contain `/`. Split an `option_name` against the known colour and size lists (longest colour first), not on the first slash.
 - Not every colour/size pair has to exist. Offer only sizes that have a variant for the chosen colour; when the colour changes and the size isn't valid any more, pick the first valid size.
 
 ### From the shopper's choice to the order
@@ -173,7 +189,7 @@ function findVariant(product: Product, color: string, size: string) {
 
 - Out of stock for a quantity `q`: `!continue_selling && stock < q`, where `stock` is the variant's `quantity` (or the product's for a simple product).
 - `continue_selling` is `true` by default: the product sells even at 0 stock. Many stores keep it on.
-- List items have `in_stock` = `continue_selling || quantity > 0` (or any variant > 0) and `quantity` = the sum of positive stock.
+- List items have `in_stock` = `continue_selling || quantity > 0` (or any variant > 0), except where `continue_selling` isn't loaded (category, new arrivals, search, similar products): there it is stock only. See [List items](#list-items) for `quantity`.
 
 ### Stores with advanced inventory
 
@@ -198,7 +214,8 @@ When `check_domain.use_advanced_inventory` is true and the store has a website o
 | `coming_soon` | Shown, but can't be bought yet; no back-in-stock form |
 | `no_price` | The price is hidden |
 | `team_order` | A team/bulk order product (Blanxer-specific form; not part of v1) |
-| `rd_<Label>_<link>`, `ard_<Label>_<link>` | A "more information" button linking out; `+` in the label is a space |
+| `rd_<Label>_<link>` | Replaces Add to cart with a button linking out; `+` in the label is a space |
+| `ard_<Label>_<link>` | Adds an extra outlined button linking out, next to Add to cart. When a product has both, `rd_` wins on product cards |
 
 
 ## Categories
@@ -212,11 +229,12 @@ From `check_domain.categories`:
 
 - Sort by `order` for menus.
 - `/collections/<slug>` uses `GET /product/public/<store_id>/category/<slug>`. It returns every product in the category (not paginated); paginate in the site if needed.
-- `new-arrivals` is a virtual category: the 12 newest Active, non-POS products. It is always in Blanxer's sitemap, so keep `/collections/new-arrivals` working.
+- The endpoint's `category` has only `_id`, `name`, `slug` and `desc_page`. Take the SEO fields and image from `check_domain.categories`.
+- `new-arrivals` is a virtual category: the 12 newest products, minus any that aren't Active or are POS-only (so up to 12). It is always in Blanxer's sitemap, so keep `/collections/new-arrivals` working.
 
 ## Brands
 
-- `GET /brand/public/all/<store_id>` → `{brands: [{_id, name, slug, logo, page, desc_page, created_at, ...}]}` for `/brands`.
+- `GET /brand/public/all/<store_id>` → `{brands: [{_id, name, slug, logo, page, desc_page, created_at, ...}]}` for `/brands`, newest first. Sort them in the site if you want another order.
 - `GET /brand/public/products/<store_id>/<slug>` → `{brand: {name, slug, page: {seo_title, seo_description, seo_image}}, products}` for `/brand/<slug>`. Only Active, non-POS products.
 - `GET /brand/public/details/<store_id>/<slug>` → `{brand, page}`, where `page` is the brand's page-builder page (or `null`). A custom site uses it only for the brand's SEO fields; it doesn't render page-builder sections.
 
@@ -232,11 +250,11 @@ A flash sale is an offer campaign with a start and end time. While it is live, *
 { "server_time": "2026-10-11T08:00:00.000Z",
   "sales": [{ "_id": "...", "name": "Dashain Flash", "status": "live",
               "start_at": "2026-10-11T06:00:00.000Z", "end_at": "2026-10-11T10:00:00.000Z",
-              "discount_type": "...", "discount_value": 20, "max_per_order": 2,
+              "discount_type": "percentage", "discount_value": 20, "max_per_order": 2,
               "show_countdown": true, "show_stock_left": true, "sold_out": false }] }
 ```
 
-`status` is `live` or `upcoming`.
+`status` is `live` or `upcoming`. `discount_type` is `percentage`, `fixed_amount` or `fixed_price`. `max_per_order` 0 means no limit.
 
 ### One product
 
@@ -248,8 +266,8 @@ A flash sale is an offer campaign with a start and end time. While it is live, *
 ```
 
 - `sale` is `null` when the product is in no live or upcoming sale.
-- `offer_price_from` is the lowest offer price, for "Rs 999 from 10:00" before the sale starts.
-- `units` is only there while the sale is live, `show_stock_left` is on and the product doesn't continue selling. `in_checkout` = units held in other shoppers' checkouts.
+- `offer_price_from` is the lowest offer price, for "Rs 999 from 10:00" before the sale starts. It is `null` when no offer price is set.
+- `units` is missing when `sale` is `null`. Otherwise it is `null` unless the sale is live, `show_stock_left` is on and the product doesn't continue selling. It counts the whole product (all variants). `in_checkout` = units held in other shoppers' checkouts.
 
 ### How the strip behaves
 
@@ -272,8 +290,8 @@ POST /public/flash-sale/<store_id>/notify
   "url": "https://mystore.com/product/pashmina-shawl", "phone": "9800000000" }
 ```
 
-- `phone` (10 digits) or `email` is required: `A phone number or email is required`.
-- Only for sales that haven't started: `This sale has already started`.
+- `phone` (10 digits) or `email` is required. Without both: HTTP 400 `{"error_type":"zod_validation","fields":{"phone":"A phone number or email is required"}}`.
+- Only for scheduled sales: any other status gives `This sale has already started`. An unknown sale: `Sale not found`.
 - `url` is kept only if it is on the store's own domains, including the saved site link (`storefront_url`). Save the site link in Blanxer, or the alert email has no link.
 - Response: `{"success": true, "message": "We'll let you know when the sale starts."}`.
 - Limit: 10 per 15 minutes per IP. Call it from the browser.
@@ -281,7 +299,7 @@ POST /public/flash-sale/<store_id>/notify
 ## Prices and currency
 
 - Prices are in NPR. Format with `Intl.NumberFormat('en-IN')`.
-- The store's currency label is `check_domain.customization.currency_indicator` (default `रू`).
+- The store's currency label is `check_domain.customization.currency_indicator` (the package's default is `Rs.`).
 
 ## Product images
 
