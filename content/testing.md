@@ -8,7 +8,7 @@ Test the site before it goes live, and once more after. There are three tools: t
 npx blanxer-storefront check
 ```
 
-Fix every failure first. What it checks: [Package → check](https://developers.blanxer.com/package.md#check).
+Fix every failure first. What it checks: [Package → check](https://developers.blanxer.com/api-docs/package.md#check).
 
 ## 2. Test orders that create nothing
 

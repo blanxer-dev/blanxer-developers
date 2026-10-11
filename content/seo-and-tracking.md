@@ -17,7 +17,7 @@ Both send `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`. A
 2. else the verified Blanxer custom domain;
 3. else `https://<sub>.blanxer.io`.
 
-So **save the site link in Blanxer before you submit either file** (`blanxer_set_storefront_url`, see [Deploy](https://developers.blanxer.com/deploy-cloudflare.md#link-the-site-to-blanxer)). Before that, they point at the Blanxer-hosted site. The API uses a changed link on the next request, but HTTP caches (`max-age=3600` plus `stale-while-revalidate=86400`) and the site's own `/sitemap-catalog.xml` (cached 3600 s) can serve the old links for an hour or more.
+So **save the site link in Blanxer before you submit either file** (`blanxer_set_storefront_url`, see [Deploy](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#link-the-site-to-blanxer)). Before that, they point at the Blanxer-hosted site. The API uses a changed link on the next request, but HTTP caches (`max-age=3600` plus `stale-while-revalidate=86400`) and the site's own `/sitemap-catalog.xml` (cached 3600 s) can serve the old links for an hour or more.
 
 ### What the catalog sitemap lists
 
@@ -99,7 +99,7 @@ Where the Blanxer-hosted storefront differs: its product `<title>` is the name (
 - `noindex` on `/cart`, `/checkout`, `/payment/success`, `/payment/failed`, `/track/[id]`, `/search`, and blog posts with `no_index`.
 - On stores without a landing page, confirm the home title and description (the store name and description) with the merchant.
 
-To improve the text, use the MCP: `blanxer_audit_seo`, then `blanxer_update_product_status_seo`, `blanxer_bulk_update_products`, `blanxer_bulk_update_categories_seo`, `blanxer_update_brand`. Confirm bulk changes first (rule 13). See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md).
+To improve the text, use the MCP: `blanxer_audit_seo`, then `blanxer_update_product_status_seo`, `blanxer_bulk_update_products`, `blanxer_bulk_update_categories_seo`, `blanxer_update_brand`. Confirm bulk changes first (rule 13). See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md).
 
 ## JSON-LD
 

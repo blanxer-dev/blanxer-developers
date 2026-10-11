@@ -74,7 +74,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 }
 ```
 
-See [Catalog](https://developers.blanxer.com/catalog.md) for what the product endpoints return.
+See [Catalog](https://developers.blanxer.com/api-docs/catalog.md) for what the product endpoints return.
 
 ## `@blanxer-dev/storefront/client`
 
@@ -112,7 +112,7 @@ Client components and hooks. **Unstyled by default**: each element has a `bx-*` 
 | `<AddToCart product>` | Builds the cart line (variant `_id`, weight, custom fields, customization charge). Options to show the price, variants, custom fields, quantity, flash sale and stock alert |
 | `useProductSelection(product)`, `<VariantPicker>`, `<CustomFields>`, `<QuantityPicker>` | Build your own product form from the same selection state |
 | `<FlashSaleStrip productId>` | Countdown, units left, per-order limit, notify me |
-| `<Checkout>` | The whole checkout: form, place select, delivery charge, coupons, payment methods, every gateway, QR modals with the hold timer. See [Checkout](https://developers.blanxer.com/checkout.md). |
+| `<Checkout>` | The whole checkout: form, place select, delivery charge, coupons, payment methods, every gateway, QR modals with the hold timer. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md). |
 | `<PaymentSuccess>` | `/payment/success` |
 | `<PaymentFailed method?>` | `/payment/failed` |
 | `<OrderTracking orderId fromCheckout?>` | `/track/[id]`, with cancel and review |
@@ -205,7 +205,7 @@ export default function Page() {
 - Not ported on purpose: the customer login gate, loyalty tier discount and points preview (custom sites have no login), store-specific variants, and Card (Cybersource), which stays off.
 - `Checkout` offers the optional delivery date from today only, like storefront `main`; the newer backend delivery-date rules aren't on `main` either.
 - Payment methods are shown by name; logos are opt-in through `paymentMethodIcons`.
-- The package re-selects a payment method that disappears, re-checks the coupon when the cart total changes, and shows per-method payment-start errors. See [Checkout](https://developers.blanxer.com/checkout.md).
+- The package re-selects a payment method that disappears, re-checks the coupon when the cart total changes, and shows per-method payment-start errors. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md).
 
 ## `@blanxer-dev/storefront/seo`
 
@@ -221,7 +221,7 @@ export default function Page() {
 | `productJsonLd`, `organizationJsonLd`, `breadcrumbJsonLd` | schema.org `Product`, `Organization`, `BreadcrumbList` |
 | `jsonLd(data)` | A safe serialiser for `<script type="application/ld+json">` |
 
-Canonical URLs are only emitted when the origin is known. What they produce: [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
+Canonical URLs are only emitted when the origin is known. What they produce: [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md).
 
 ### Site tags (0.1.1+)
 
@@ -255,14 +255,14 @@ Run before every deploy. It prints a PASS/FAIL table and fails when:
 - there are account, login, wishlist, rewards or `/p/` pages, or calls to `/customer/auth`, `/customer/account`, wishlist or rewards;
 - a secret is in the code, env files, `wrangler` config or the build output (`sk_` keys, gateway keys, plugin tokens, passwords, JWTs);
 - `@blanxer-dev/storefront/client` is imported by server files, or the code calls payment, coupon or hold endpoints directly;
-- the image budget is broken: see [Images and speed](https://developers.blanxer.com/images-and-speed.md#size-per-slot). It also warns when no image on a page is marked as the main (LCP) image;
+- the image budget is broken: see [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md#size-per-slot). It also warns when no image on a page is marked as the main (LCP) image;
 - with `--lighthouse <origin>` (the production build running with `next start`): Lighthouse mobile is under 90 or LCP over 2.5 s on the home page, one product page and `/checkout`. It runs `npx --yes lighthouse` and needs Chrome.
 
 It also lists the store's delivery places and payment methods. `--offline` skips the network checks. After an OpenNext build it reports the Worker size against the 3 MiB free-plan limit.
 
 ### `images`
 
-Resizes images (never enlarges; default max width 2560, `--max-width` to change it), writes AVIF and WebP (~75 quality; `--quality`, `--formats`), copies SVGs, strips EXIF and location data, and prints a before/after size report. Needs `sharp` (an optional dependency of the package). See [Images and speed](https://developers.blanxer.com/images-and-speed.md#optimising-a-merchants-images).
+Resizes images (never enlarges; default max width 2560, `--max-width` to change it), writes AVIF and WebP (~75 quality; `--quality`, `--formats`), copies SVGs, strips EXIF and location data, and prints a before/after size report. Needs `sharp` (an optional dependency of the package). See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md#optimising-a-merchants-images).
 
 ## Versions
 

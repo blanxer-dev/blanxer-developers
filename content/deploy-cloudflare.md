@@ -97,11 +97,11 @@ The deploy ends with the live link: `https://<worker-name>.<account-subdomain>.w
 
 1. Save the link: `blanxer_set_storefront_url { url: "https://<the workers.dev link or the custom domain>" }` through the MCP. That call is a preview with a `confirm_token`; after the merchant's yes, apply it with `{ dry_run: false, confirm_token }`. Or the merchant pastes it in the Blanxer dashboard → avatar menu → BlanxerAPI → Your website (rolling out).
 
-   Blanxer then uses it for the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md#blanxersetstorefronturl) for the full list.
+   Blanxer then uses it for the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md#blanxersetstorefronturl) for the full list.
 2. Register the product feed `https://api.blanxer.com/public/product-feed/<store_id>.xml` with Meta Commerce Manager and/or Google Merchant Center.
 3. Verify the site in Google Search Console and submit `https://<site>/sitemap.xml`.
 
-Details for 2 and 3: [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
+Details for 2 and 3: [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md).
 
 ## Custom domain (optional)
 

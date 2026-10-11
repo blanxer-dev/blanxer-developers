@@ -2,7 +2,7 @@
 
 Build a custom Next.js website for a Blanxer store and deploy it to the merchant's own Cloudflare account. Blanxer stays the admin: products, stock, orders, payments, delivery and SEO data are managed in Blanxer, and the website is the front end.
 
-> **AI agents:** read [llms.txt](https://developers.blanxer.com/llms.txt), then follow the [Quickstart](https://developers.blanxer.com/quickstart.md). Everything is also in [one file](https://developers.blanxer.com/llms-full.txt).
+> **AI agents:** read [llms.txt](https://developers.blanxer.com/llms.txt), then follow the [Quickstart](https://developers.blanxer.com/api-docs/quickstart.md). Everything is also in [one file](https://developers.blanxer.com/llms-full.txt).
 
 Merchants start with one line to their AI agent:
 
@@ -24,9 +24,9 @@ Merchants start with one line to their AI agent:
 
 ## Guides
 
-- [Quickstart](https://developers.blanxer.com/quickstart.md): the procedure, step by step
-- [The 13 hard rules](https://developers.blanxer.com/rules.md)
-- [Store and theme](https://developers.blanxer.com/store-and-theme.md) · [Catalog](https://developers.blanxer.com/catalog.md) · [Checkout](https://developers.blanxer.com/checkout.md) · [Forms and extras](https://developers.blanxer.com/forms-and-extras.md)
-- [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md) · [Images and speed](https://developers.blanxer.com/images-and-speed.md) · [Package](https://developers.blanxer.com/package.md)
-- [MCP for your website](https://developers.blanxer.com/mcp-for-website.md) · [Testing](https://developers.blanxer.com/testing.md) · [Deploy to Cloudflare](https://developers.blanxer.com/deploy-cloudflare.md) · [Troubleshooting](https://developers.blanxer.com/troubleshooting.md)
+- [Quickstart](https://developers.blanxer.com/api-docs/quickstart.md): the procedure, step by step
+- [The 13 hard rules](https://developers.blanxer.com/api-docs/rules.md)
+- [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md) · [Catalog](https://developers.blanxer.com/api-docs/catalog.md) · [Checkout](https://developers.blanxer.com/api-docs/checkout.md) · [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md)
+- [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md) · [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md) · [Package](https://developers.blanxer.com/api-docs/package.md)
+- [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md) · [Testing](https://developers.blanxer.com/api-docs/testing.md) · [Deploy to Cloudflare](https://developers.blanxer.com/api-docs/deploy-cloudflare.md) · [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md)
 - [OpenAPI spec](https://developers.blanxer.com/openapi.yaml) for every endpoint a site uses

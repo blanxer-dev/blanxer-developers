@@ -1,0 +1,37 @@
+{
+  "$comment": "Sidebar, prev/next and llms-full.txt order. Every content/*.md except index.md must be listed. `nav` is the short sidebar label; the page title is the file's H1.",
+  "groups": [
+    {
+      "name": "Start here",
+      "pages": [
+        { "slug": "index", "nav": "Overview" },
+        { "slug": "quickstart", "nav": "Quickstart" },
+        { "slug": "rules", "nav": "The 13 hard rules" }
+      ]
+    },
+    {
+      "name": "Build",
+      "pages": [
+        { "slug": "store-and-theme", "nav": "Store and theme" },
+        { "slug": "catalog", "nav": "Catalog" },
+        { "slug": "checkout", "nav": "Checkout" },
+        { "slug": "forms-and-extras", "nav": "Forms and extras" },
+        { "slug": "seo-and-tracking", "nav": "SEO and tracking" },
+        { "slug": "images-and-speed", "nav": "Images and speed" },
+        { "slug": "package", "nav": "The storefront package" }
+      ]
+    },
+    {
+      "name": "Store data",
+      "pages": [{ "slug": "mcp-for-website", "nav": "MCP for your website" }]
+    },
+    {
+      "name": "Ship",
+      "pages": [
+        { "slug": "testing", "nav": "Testing" },
+        { "slug": "deploy-cloudflare", "nav": "Deploy to Cloudflare" },
+        { "slug": "troubleshooting", "nav": "Troubleshooting" }
+      ]
+    }
+  ]
+}

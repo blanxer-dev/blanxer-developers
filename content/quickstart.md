@@ -10,13 +10,13 @@ This page is the procedure. Each step links to the guide with the details.
 
 ## Before you start
 
-Read [the 13 hard rules](https://developers.blanxer.com/rules.md). In short: Next.js only, start from the starter, keep `@blanxer-dev/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
+Read [the 13 hard rules](https://developers.blanxer.com/api-docs/rules.md). In short: Next.js only, start from the starter, keep `@blanxer-dev/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
 
 Install the agent tools:
 
 - **Claude Code skill:** `/plugin marketplace add blanxer-dev/blanxer-agent-skills` then `/plugin install blanxer-website@blanxer`
 - **Blanxer MCP:** `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp` (the merchant signs in to Blanxer in the browser)
-- **Cursor, Codex, claude.ai:** add `https://mcp.blanxer.com/mcp` as a remote MCP server. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md). The starter's `AGENTS.md` holds the same procedure as the skill.
+- **Cursor, Codex, claude.ai:** add `https://mcp.blanxer.com/mcp` as a remote MCP server. See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md). The starter's `AGENTS.md` holds the same procedure as the skill.
 
 ## Three channels, three jobs
 
@@ -40,13 +40,13 @@ Look the store up by subdomain (or custom domain):
 curl -s "https://api.blanxer.com/store/check_domain?domain=mystore"
 ```
 
-You get the store config, including `_id` (the store id every other call needs), `name`, `plan`, `addons`, `checkout`, `customization` and `categories`. An unknown domain returns HTTP 400 `{"message":"Domain not in use"}`. Field by field: [Store and theme](https://developers.blanxer.com/store-and-theme.md).
+You get the store config, including `_id` (the store id every other call needs), `name`, `plan`, `addons`, `checkout`, `customization` and `categories`. An unknown domain returns HTTP 400 `{"message":"Domain not in use"}`. Field by field: [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md).
 
 Show the merchant:
 
 - the store name and plan;
 - the product count (`GET /product/public/<store_id>` returns all active products);
-- the payment methods the checkout will offer (see [Checkout → Payment methods](https://developers.blanxer.com/checkout.md#payment-methods));
+- the payment methods the checkout will offer (see [Checkout → Payment methods](https://developers.blanxer.com/api-docs/checkout.md#payment-methods));
 - **Free plan** (`plan` not one of `basic`, `premium`, `plus`, `platinum`): the checkout is Cash on Delivery only;
 - **Store with customer login turned on** (`customer_program.enabled`): the custom site still uses guest checkout. BlanxerAPI has no login.
 
@@ -66,15 +66,15 @@ npm install
 ./node_modules/.bin/next dev
 ```
 
-`BLANXER_STORE` is the subdomain (required). Optional: `BLANXER_API` (default `https://api.blanxer.com`), `SITE_URL` (the site's public origin; default the link saved in Blanxer) and `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` (`wsrv`, `cloudflare` or `none`). See [Deploy → Configuration](https://developers.blanxer.com/deploy-cloudflare.md#configuration). Open `http://localhost:3000` and show the merchant the starter running with their real products before changing the design.
+`BLANXER_STORE` is the subdomain (required). Optional: `BLANXER_API` (default `https://api.blanxer.com`), `SITE_URL` (the site's public origin; default the link saved in Blanxer) and `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` (`wsrv`, `cloudflare` or `none`). See [Deploy → Configuration](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#configuration). Open `http://localhost:3000` and show the merchant the starter running with their real products before changing the design.
 
 The starter's `npm run dev`, `npm run build` and `npm run deploy` scripts do the same as the direct commands on this page. The direct `./node_modules/.bin/...` form avoids surprises when the machine has another Node install on its path.
 
 ### 4. Build
 
-- Build pages with the package's data functions and components. See [Catalog](https://developers.blanxer.com/catalog.md) and [Package](https://developers.blanxer.com/package.md).
-- Theme the checkout; don't rewrite it. See [Checkout](https://developers.blanxer.com/checkout.md).
-- Optimise every image (rule 11) and show a before/after size table. See [Images and speed](https://developers.blanxer.com/images-and-speed.md).
+- Build pages with the package's data functions and components. See [Catalog](https://developers.blanxer.com/api-docs/catalog.md) and [Package](https://developers.blanxer.com/api-docs/package.md).
+- Theme the checkout; don't rewrite it. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md).
+- Optimise every image (rule 11) and show a before/after size table. See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md).
 - Fix store data through the MCP: SEO text, categories and brands for the menus, product photos, launch coupons. Confirm bulk changes first (rule 13).
 
 Routes every site has:
@@ -94,9 +94,9 @@ It checks the routes, secrets, login code, that order and payment calls run in t
 
 ### 6. Test the checkout
 
-See [Testing](https://developers.blanxer.com/testing.md). On the merchant's real store, test orders use the phone number `0000000000`: the API validates the order and returns `{"success":true}` **without creating it**. The checkout then shows "Test order accepted" and stops. That tests the form, validation, delivery charges, COD per place and coupons.
+See [Testing](https://developers.blanxer.com/api-docs/testing.md). On the merchant's real store, test orders use the phone number `0000000000`: the API validates the order and returns `{"success":true}` **without creating it**. The checkout then shows "Test order accepted" and stops. That tests the form, validation, delivery charges, COD per place and coupons.
 
-Because no order exists, the `0000000000` order can't open a gateway or a QR screen. Check that every payment method the store has on appears for a COD and a non-COD place, and that `/payment/success`, `/payment/failed` and `/track/<id>` render. The gateway and QR screens themselves are checked once, live, in step 12 (see [Testing → The live check](https://developers.blanxer.com/testing.md#4-the-live-check)).
+Because no order exists, the `0000000000` order can't open a gateway or a QR screen. Check that every payment method the store has on appears for a COD and a non-COD place, and that `/payment/success`, `/payment/failed` and `/track/<id>` render. The gateway and QR screens themselves are checked once, live, in step 12 (see [Testing → The live check](https://developers.blanxer.com/api-docs/testing.md#4-the-live-check)).
 
 ### 7. Sign in to Cloudflare
 
@@ -104,7 +104,7 @@ Because no order exists, the `0000000000` order can't open a gateway or a QR scr
 npx wrangler login
 ```
 
-The merchant signs in to **their own** Cloudflare account in the browser. Before the first deploy, rename the Worker in `wrangler.jsonc` (`name` and the matching `WORKER_SELF_REFERENCE` service) to the merchant's site name. Check the Worker size: 3 MiB (compressed) on the free plan. See [Deploy to Cloudflare](https://developers.blanxer.com/deploy-cloudflare.md).
+The merchant signs in to **their own** Cloudflare account in the browser. Before the first deploy, rename the Worker in `wrangler.jsonc` (`name` and the matching `WORKER_SELF_REFERENCE` service) to the merchant's site name. Check the Worker size: 3 MiB (compressed) on the free plan. See [Deploy to Cloudflare](https://developers.blanxer.com/api-docs/deploy-cloudflare.md).
 
 ### 8. Deploy
 
@@ -116,7 +116,7 @@ Print the live `*.workers.dev` link and open it.
 
 ### 9. Link the site to Blanxer
 
-Call `blanxer_set_storefront_url { url }`. It returns a preview and a `confirm_token`; show the merchant, and after their yes call `{ dry_run: false, confirm_token }`. (Or the merchant pastes the link in the Blanxer dashboard → avatar menu → **BlanxerAPI** → Your website, rolling out.) Blanxer then uses the site in the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. Register the feed with Meta and submit the sitemap to Google Search Console. See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
+Call `blanxer_set_storefront_url { url }`. It returns a preview and a `confirm_token`; show the merchant, and after their yes call `{ dry_run: false, confirm_token }`. (Or the merchant pastes the link in the Blanxer dashboard → avatar menu → **BlanxerAPI** → Your website, rolling out.) Blanxer then uses the site in the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. Register the feed with Meta and submit the sitemap to Google Search Console. See [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md).
 
 ### 10. Custom domain (optional)
 
@@ -124,7 +124,7 @@ Add it in Cloudflare, then update the link (step 9).
 
 ### 11. Retire the subdomain site (optional, merchant's choice)
 
-Only after step 9. Every page on `<sub>.blanxer.io` then shows a placeholder, **including tracking links sent before today**. See [Deploy to Cloudflare → Retiring the old subdomain site](https://developers.blanxer.com/deploy-cloudflare.md#retiring-the-old-subdomain-site).
+Only after step 9. Every page on `<sub>.blanxer.io` then shows a placeholder, **including tracking links sent before today**. See [Deploy to Cloudflare → Retiring the old subdomain site](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#retiring-the-old-subdomain-site).
 
 ### 12. Live check
 
@@ -132,5 +132,5 @@ On the live site open home, a product, checkout, the three payment/tracking page
 
 ## Next
 
-- [Checkout](https://developers.blanxer.com/checkout.md) is the most important page. Read it before touching `/checkout`.
+- [Checkout](https://developers.blanxer.com/api-docs/checkout.md) is the most important page. Read it before touching `/checkout`.
 - The API spec for every endpoint a site uses: [openapi.yaml](https://developers.blanxer.com/openapi.yaml).
