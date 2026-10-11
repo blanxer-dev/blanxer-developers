@@ -2,7 +2,7 @@
 
 > BlanxerAPI lets an AI agent or developer build a custom Next.js website for a Blanxer store (Blanxer is a Nepali e-commerce platform) and deploy it to the merchant's own Cloudflare account. Blanxer stays the admin: products, stock, orders, payments, delivery and SEO data live in Blanxer. The site reads the public API at https://api.blanxer.com (no key, CORS *) and uses the @blanxer-dev/storefront package for the checkout. The agent changes store data only through the Blanxer MCP (OAuth); the site holds no key.
 
-The merchant's prompt usually is: "Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is <subdomain>."
+The merchant's prompt usually is: "Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is <subdomain>.blanxer.io."
 
 Start with https://developers.blanxer.com/api-docs/quickstart.md and follow its steps in order, confirming each with the merchant. The merchant tells you their store's subdomain (`<subdomain>.blanxer.io`).
 

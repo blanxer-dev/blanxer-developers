@@ -4,7 +4,7 @@ BlanxerAPI lets you build a custom Next.js website for a Blanxer store and deplo
 
 The merchant usually starts with one line to an AI agent:
 
-> Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is `<subdomain>`.
+> Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is `<subdomain>.blanxer.io`.
 
 This page is the procedure. Each step links to the guide with the details.
 

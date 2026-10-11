@@ -19,7 +19,7 @@ export const HOME_DESCRIPTION =
 export const buildPrompt = (subdomain: string) =>
   `Build my Blanxer store website in Next.js and deploy it to my Cloudflare account.
 Follow ${LLMS_URL}
-My store is ${subdomain || "<your store subdomain>"}.`;
+My store is ${subdomain ? `${subdomain}.blanxer.io` : "<your-store>.blanxer.io"}.`;
 
 export type Faq = { q: string; a: string };
 

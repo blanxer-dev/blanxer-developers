@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * docs, finds the store, asks about the design, builds, tests and deploys. Illustrative only.
  */
 const lines: { kind: "you" | "step" | "ask" | "done"; text: string }[] = [
-  { kind: "you", text: "Build my Blanxer store website… My store is shop." },
+  { kind: "you", text: "Build my Blanxer store website… My store is shop.blanxer.io." },
   { kind: "step", text: "Reading developers.blanxer.com/llms.txt" },
   { kind: "step", text: "Found shop.blanxer.io · 48 products · eSewa, Khalti, COD" },
   { kind: "ask", text: "How should it feel? → “Clean and premium, white”" },
