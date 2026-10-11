@@ -2,11 +2,13 @@
 
 > **Use `@blanxer/storefront`'s `Checkout` component. This page documents what it does.** Restyle it with theme props, CSS variables and wrappers (rule 2). Don't rewrite the payment, delivery, coupon or order logic, and don't call payment endpoints yourself. You need this page to theme the checkout safely, to debug it, and to explain it to the merchant.
 
-The checkout behaves exactly like the Blanxer-hosted storefront's checkout (storefront `main` at `cabd695`): the same fields, delivery places and charges, coupons, payment methods, stock holds, flash-sale limits and tracking. The server re-checks everything. Prices, stock, delivery charges, COD and coupons are all recomputed on the server; what the browser shows is a preview.
+The checkout behaves like the Blanxer-hosted storefront's checkout (storefront `main` at `cabd695`): the same fields, delivery places and charges, coupons, payment methods, stock holds, flash-sale limits and tracking. Where the package differs from the hosted storefront, this page says so. The hosted storefront also has a few store-specific checkout variants; the package doesn't port them.
+
+The server re-checks the order. Prices, stock, delivery charges, COD and coupons are recomputed on the server; what the browser shows is a preview. Two things are taken from the request as sent: each line's `customization_charge` and its custom-field values.
 
 ## The flow at a glance
 
-1. The page loads the store (`check_domain`) and the delivery table on the server.
+1. The page loads the store (`check_domain`) on the server. The delivery table is loaded on the server when you pass it to `Checkout` as `delivery` (the starter does); without it, the package fetches it in the browser.
 2. The shopper fills the form, picks a delivery place and a payment method, and may apply a coupon.
 3. The browser sends `POST /order/<store_id>` with the cart lines, the form, the payment method, the coupon `_id` and `url` = the site's own origin.
 4. The API creates the order. COD orders are `Pending` and stock is reduced at once. Online orders are `Inactive` and their units are held while the shopper pays.
@@ -21,8 +23,8 @@ Everything in steps 3–6 runs in the browser (rule 5).
 
 | Input | From | Notes |
 |---|---|---|
-| Store config | `GET /store/check_domain?domain=<subdomain>` | `_id`, `plan`, `addons`, `setting`, `checkout`. Load it on the server. |
-| Delivery table | `GET /public/delivery_charge/<store_id>` | Load it on the server. |
+| Store config | `GET /store/check_domain?domain=<subdomain>` | `_id`, `plan`, `addons`, `setting`, `checkout`. Load it on the server. (The hosted storefront uses `POST /store/check_domain?d=<domain>` with body `{domain}`; both return the same.) |
+| Delivery table | `GET /public/delivery_charge/<store_id>` | Load it on the server and pass it as `delivery`. |
 | Cart lines | The browser, `localStorage['cart_items']` | Only the selected lines are ordered (`localStorage['cart_selection']`). |
 | `url` | `window.location.origin` | No trailing slash. Never hardcode it (rule 4). |
 
@@ -30,7 +32,7 @@ Everything in steps 3–6 runs in the browser (rule 5).
 
 ```ts
 interface CartLine {
-  id: string;                     // `${product}_${variant}`; unique per add when it has custom fields
+  id: string;                     // `${product}_${variant}` (see below)
   product: string;                // product _id
   variant: string;                // variant _id, '' for a product without variants
   quantity: number;
@@ -45,6 +47,9 @@ interface CartLine {
   customization_charge?: number;  // per unit, from paid custom fields
 }
 ```
+
+- **Line id:** `${product}_${variant}`. Adding the same product and variant again adds to that line's quantity, even when the custom-field values differ; the line keeps its first values. Only team-order adds (`addManyToCart`) give each line with custom fields its own id. The hosted storefront also gives print lines their own id (`_${printId}` appended).
+- **Storage keys** match the hosted storefront (`cart_items`, `cart_selection`, `promo_code`, `checkout_order_id`, `pixel_purchase_pending`), except back-in-stock: the package uses `stock_alerts`, the hosted storefront `bx_stock_alerts`.
 
 ## Fields
 
@@ -69,7 +74,8 @@ Field names are the keys of the order request body. "Server" is the backend's zo
 
 Layout rules the component follows:
 
-- With `checkout.receiver_info` on, the form has "1. Sender Information" (the `sender_*` fields) and "2. Receiver Information" (the `customer_*` fields plus the delivery place and address). The receiver is the person the parcel goes to. The confirmation email then goes to `sender_email` (if given) instead of `customer_email`.
+- With `checkout.receiver_info` on, the form has "1. Sender Information" (the `sender_*` fields) and "2. Receiver Information" (the `customer_*` fields plus the delivery place and address). The receiver is the person the parcel goes to.
+- **Confirmation email:** when `sender_full_name` is set, it goes only to `sender_email`, and to nobody when that is empty. Otherwise it goes to `customer_email`. COD orders are emailed when they are created; online orders only once paid.
 - Without it, the form has "1. General Information" and a separate "Delivery Address" block.
 - The Blanxer storefront shows Company Name and PAN/VAT together when `checkout.pan` is on.
 - `checkout.extras.checkout_note`, when not empty, is shown under the total.
@@ -109,7 +115,7 @@ The package's `Checkout` always renders this line under the place-order button:
 
 ### The rules
 
-- **Weight** = the sum of `weight × quantity` over the ordered lines, in kg. The server uses the variant's weight for a variant line and the product's weight otherwise.
+- **Weight** = the sum of `weight × quantity` over the ordered lines, in kg. The server uses the variant's weight for a variant line (0 when the variant has none) and the product's weight otherwise. The cart line falls back to the product's weight when the variant has none, so the preview can show a different delivery charge than the order.
 - **Bracket index**: the first of `[1, 2, 3, 5, 10]` that the weight is `<=`; above 10 kg it is index 5.
 - **Charge** = `place[index + 2]`; if that is below 0, `defaults[index]`.
 - **COD is allowed for a place when `cod === true || cod === 'Y'`.** That is the server's rule. The Blanxer storefront uses `!!cod`, which treats `'N'` as yes; don't copy that.
@@ -153,10 +159,11 @@ In this order:
 | `NPX` | `addons.npx` | Nepal Payment Solution | Form post |
 | `nbank_card` | `addons.nbank_card` | Visa/Mastercard | Redirect (Nabil Bank) |
 
-- `setting.*` keys arrive masked: `'yes'` when set, `''` when not. Test them for truthiness only.
+- The payment-credential keys in `setting` arrive masked: `'yes'` when set, `''` when not (`fonepay_checkout_pubkey` is always `''`). Other `setting` keys come as stored. Test only the keys in this table, for truthiness.
 - Card (Cybersource) is always off: `check_domain` always returns `addons.cybersource: false`.
-- The strings are exact and case-sensitive. The server stores whatever string you send, so a typo creates an order no gateway will ever pay.
-- The first available method is preselected. If the selected method disappears (for example COD after switching to a no-COD place), select the first available one again.
+- The strings are exact and case-sensitive. The server stores whatever string you send, so a typo creates an order no gateway will ever pay. A missing `paymentMethod` is saved as `COD`.
+- The first available method is preselected. If the selected method disappears (for example COD after switching to a no-COD place), the package selects the first available one again. (The hosted storefront doesn't; it keeps the old selection and the server refuses it.)
+- The server also saves the method as the customer's `preferred_payment_method`, for guests too.
 - The server rejects COD for a place without COD: `Cash on delivery is not available for the selected delivery location`.
 
 ## Coupons
@@ -189,18 +196,19 @@ Response:
 }
 ```
 
-- The code lookup is exact. The Blanxer storefront upper-cases what the shopper types.
+- The code lookup is exact (case-sensitive). The package and the hosted storefront upper-case what the shopper types.
+- The promo code box shows only when `store.plan` is set (not on the free plan).
 - Errors are HTTP 400 `{message}`: `Coupan not found` (sic), `Coupon is inactive`, `All the available coupons have been used.`, `Coupon code not available` (not started yet), `Coupon code is expired`, `Cart must not be empty`, `Coupon is not applicable to any products` (category-restricted coupon, no matching product).
-- **Each successful apply reserves one use of the coupon for 5 minutes.** Call it when the shopper presses Apply, never on every keystroke.
+- **Each successful apply holds one use of the coupon for about 12 seconds.** That matters only for a coupon with a usage limit: on its last use, an order placed within ~12 seconds of Apply can fail with `All the available coupons have been used.` Call it when the shopper presses Apply, never on every keystroke.
 - `total_applicable_amount` is the sum of `price × quantity` of the lines the coupon applies to (all lines, or only lines in the coupon's `categories`).
 
 ### Checks in the browser
 
-The coupon response is checked again every time the payment method, place or totals change. These give live feedback; the server enforces the same rules when the order is placed.
+The package re-checks the coupon on every change: payment method, place, delivery charge and cart total. (The hosted storefront re-checks when the coupon, delivery charge, payment method or place changes, but not when the cart total changes.) These give live feedback; the server enforces the same rules when the order is placed.
 
 | Check | Message |
 |---|---|
-| `min_order_value !== -1 && subtotal + delivery < min_order_value` | `Coupon is only applicable for order value above <min>` |
+| `min_order_value !== -1 && subtotal + customization + delivery < min_order_value` | `Coupon is only applicable for order value above <min>` (`<min>` formatted as currency, `en-IN`) |
 | `only_for_cod_payment && paymentMethod !== 'COD'` | `Only cash on delivery can use this coupon` |
 | `only_for_online_payment && paymentMethod === 'COD'` | `Only online payment method can use this coupon` |
 | `places.length && place chosen && !places.includes(place)` | `This coupon is not valid for <place>` |
@@ -232,12 +240,16 @@ Total shown = subtotal + customization charges + delivery − discount (the disc
 
 - **Send the coupon's `_id` as `coupon`, never the code.** The server only looks at `coupon` when it is longer than 20 characters (an id is 24). A code like `DASHAIN10` is **silently ignored**: the order goes through with no discount and no error.
 - Send `coupon: ''` when there is no coupon or a browser check fails.
-- The server re-validates the coupon. If it fails (expired, used up, wrong payment method or place, minimum not met), the whole order fails with that message.
+- A `coupon` longer than 20 characters that isn't a valid id fails the order with HTTP 500.
+- The server re-validates the coupon. If it fails, the whole order fails with one of: `Coupon not found` (spelled correctly here), `You are not allowed to perform this action` (another store's coupon), `This reward coupon belongs to another account`, `Coupon is inactive`, `All the available coupons have been used.`, `Coupon code not available`, `Coupon code is expired`, `Only cash on delivery can use this coupon`, `Only online payment method can use this coupon`, `This coupon is not valid for <place>`, `Coupon is only applicable for order value above <min>` (the raw number, not formatted), `Coupon is not applicable to any products`.
 - The server's discount is final. Its base includes customization charges when the coupon has no category restriction, so it can differ slightly from the preview.
 
 ### `?promo=`
 
-Any page opened with `?promo=CODE` stores `CODE` in `localStorage['promo_code']`. The checkout applies it once, automatically, when it has cart lines. Use this for shared promo links.
+Any page opened with `?promo=CODE` stores `CODE` in `localStorage['promo_code']` (`BlanxerProvider` does this). The checkout applies it once each time it opens with cart lines. The package also reads `?promo=` from the checkout URL itself. Use this for shared promo links.
+
+- The stored code stays. It is applied again on later checkouts until another `?promo=` replaces it. (The hosted storefront clears it only on logout.)
+- It is sent as stored, not upper-cased. Codes are case-sensitive, so `?promo=dashain10` gets `Coupan not found` for the code `DASHAIN10`. Write promo links with the code exactly as created.
 
 ## Custom fields
 
@@ -272,7 +284,7 @@ Each filled field becomes one string, `label|||type|||value`:
 ```
 
 - A required field left empty shows `This field is required` and blocks Add to cart.
-- A line with custom fields is never merged with another line, even for the same product and variant.
+- Adding the same product and variant again goes into the existing line, even with different values (see [A cart line](#a-cart-line)).
 - `customization_charge` is per unit. Send it on the line only when it is above 0, and send `custom_fields` only when at least one string is not empty.
 
 ### Image upload
@@ -285,9 +297,10 @@ file=<the image>
 csrf_token=<csrf_token from the product detail response>
 ```
 
-- PNG, JPG, JPEG or WebP. At most ~5.9 MB (`You can only upload at max 5MB file`).
+- PNG, JPG, JPEG or WebP, else `Only png, jpg, jpeg, webp file is allowed!`. At most 5,900,000 bytes, else `You can only upload at max 5MB file`. No file: `File wasn't supplied.`
 - Response: `{"success": true, "file": {"file_url": "https://...", ...}}`. Use `file.file_url` as the field's value.
-- The server does not currently check `csrf_token`; send it anyway.
+- The file is stored as `public_uploads/<store_id>/<product_id>_<name>-<4 digits><ext>`.
+- The server does not currently check `csrf_token` or that the product exists; send the real values anyway.
 - Upload from the browser.
 
 ## The order request
@@ -305,6 +318,7 @@ interface OrderRequest {
     quantity: number;                // ≥ 1
     customization_charge?: number;   // per unit, only when > 0
     custom_fields?: string[];        // only when at least one is not empty
+    print_id?: string;               // the chosen print, for a print add-on product (see below)
   }[];
   meta?: {                           // Meta CAPI dedup, see "Meta events" below
     event_id?: string;               // ≤ 100
@@ -326,7 +340,7 @@ interface OrderRequest {
   delivery_date?: string;            // YYYY-MM-DD, only with checkout.estimated_delivery
   pan?: string;
   company_name?: string;
-  paymentMethod: 'COD' | 'QR_Dynamic' | 'FonepayCheckout' | 'QR' | 'Esewa' | 'FonePay' | 'Khalti' | 'NPX' | 'nbank_card';
+  paymentMethod: 'COD' | 'QR_Dynamic' | 'FonepayCheckout' | 'QR' | 'Esewa' | 'FonePay' | 'Khalti' | 'NPX' | 'nbank_card'; // missing = 'COD'
   url: string;                       // window.location.origin
   coupon: string;                    // coupon _id or ''
 }
@@ -357,24 +371,32 @@ Example:
 }
 ```
 
-Send no `Authorization` header. Customer login is not part of BlanxerAPI.
+The package sends no `Authorization` header (guest checkout). The hosted storefront sends a Bearer token for logged-in members, for loyalty; customer login is not part of BlanxerAPI.
+
+### Print add-on products
+
+A product can have a print add-on (`print_addon` on the product): the shopper picks a print, and the order line carries its id as `print_id`. When the add-on is on and required, a line without `print_id` fails with `Please choose a print for <name>`; a print that is no longer allowed fails with `The selected print is no longer available for <name>`. The list of prints comes from `GET /print-design/public/<store_id>`, which isn't part of BlanxerAPI yet.
+
+**The package has no print picker yet**, so it can't sell a product whose print is required. Before launch, check the store's products for `print_addon.enabled` and tell the merchant.
 
 ### What the server checks, in order
 
-1. The body against the schema (lengths and formats above). Errors: HTTP 400 `{"error_type":"zod_validation","fields":{"<field>":"<message>"}}`. Field keys are body keys, for example `customer_phone_number` or `products.0.quantity`.
+1. The body against the schema (lengths and formats above). Errors: HTTP 400 `{"error_type":"zod_validation","fields":{"<field>":"<message>"}}`. Field keys are body keys, for example `customer_phone_number` or `products.0.quantity`. An empty `products` list: `Atleast a product is required`.
 2. The testing short-circuit (see [Testing](#testing-without-creating-an-order)).
 3. Email and sender email when the store requires them (HTTP 401, see the table above).
-4. Every product exists in this store and is `Active`, else `Either of the selected product is already deleted`.
-5. A product with variants has a `variant`, else `Variant selection required for this product`; the variant exists, else `Either of the selected product has been modified, please add to cart again`.
+4. Lines with an empty `product` are dropped; if none is left: `Product is required`. Every product exists in this store and is `Active`, else `Either of the selected product is already deleted`.
+5. A product with variants has a `variant`, else `Variant selection required for this product`; the print choice (see above); the variant exists, else `Either of the selected product has been modified, please add to cart again`.
 6. Stock, unless the product has `continue_selling`: `Either of the selected product is out of stock`. Stores with advanced inventory are checked against the website outlet's stock.
 7. Live flash sale limits: `Flash sale: you can buy at most N of "<name>" per order.`
 8. The stock hold. When the last units sit in other shoppers' checkouts: `The last units of an item in your cart are in other shoppers' checkouts right now. Please try again in about N minutes.`
 9. The delivery place and COD (messages above).
 10. The coupon (messages above).
 
-Any other error is HTTP 400 `{"message": "..."}`. Too many orders from one IP for one store (more than 5 in 10 minutes) is HTTP 429.
+Any other error is HTTP 400 `{"message": "..."}`.
 
-Prices are the server's: the variant's price if it has one, else the product's. The cart's prices are only shown.
+**Rate limit:** more than 5 requests in 10 minutes for one store from one IP (the limiter keys on the store id and `cf-connecting-ip`) is HTTP 429 with the plain-text body `Too many requests, please try again later.` Every request counts, including test orders and failed ones. The limit runs before the test-phone check.
+
+Prices are the server's: the variant's price if it has one, else the product's. The cart's prices are only shown. `customization_charge` and the custom-field values are taken from the request.
 
 ### The response
 
@@ -395,6 +417,7 @@ Prices are the server's: the variant's price if it has one, else the product's. 
 
 - `total_price` = products + customization charges − discount. **It does not include delivery.** The shopper pays `total_price + delivery_charge`.
 - `hold_seconds` and `hold_expires_at` come only for online orders that hold stock.
+- `slug` is always `''`.
 - COD orders are created as `Pending`. Online orders are created as `Inactive` with `payment_status` `Unpaid`; it becomes `Processing` when a payment starts, and the order becomes `Pending` / `Paid` when the payment is confirmed.
 
 Right after a successful response the component stores, in `sessionStorage`:
@@ -410,7 +433,11 @@ Every payment start is a browser `POST` with the same body:
 { "store": "<store_id>", "order": "<order _id>", "url": "https://mystore.com" }
 ```
 
-The API checks the order belongs to the store, creates a payment transaction for `products + customization + delivery − discount`, and remembers `url` for the return. eSewa, Khalti, FonePay (and the unused card route) validate `url` with a strict URL check that **rejects `http://localhost:3000`**: HTTP 400 `{"fields":{"url":"Valid Return URL is required"}}`. Use `http://127.0.0.1:3000` locally, or test on the deployed site.
+The API checks the order belongs to the store, creates a payment transaction for `products + customization + delivery − discount`, and remembers `url` for the return.
+
+- eSewa, Khalti, FonePay (and the unused card route) validate `url` with a strict URL check that **rejects `http://localhost:3000`**: HTTP 400 `{"fields":{"url":"Valid Return URL is required"}}`. Use `http://127.0.0.1:3000` locally, or test on the deployed site.
+- QR, Checkout by Fonepay, NPX and Nabil card accept `localhost`. Their bad-URL error is `{"error_type":"zod_validation","fields":{"url":"Invalid url"}}`.
+- If the gateway's verification fails, the API sets `payment_status` to `Failed`; the order stays `Inactive`.
 
 ### COD
 
@@ -426,7 +453,7 @@ No payment call.
 
 ```json
 {
-  "action_url": "https://epay.esewa.com.np/api/epay/main/v2/form",
+  "action_url": "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
   "amount": 4330, "total_amount": 4330,
   "product_service_charge": 0, "product_delivery_charge": 0, "tax_amount": 0,
   "transaction_uuid": "6709a1b2c3d4e5f6071829aa",
@@ -438,11 +465,15 @@ No payment call.
 }
 ```
 
-Build a hidden `<form method="post" action={action_url}>` with one hidden input per key **except** `action_url`, append it to the body and submit it. eSewa returns to the API, which verifies the payment and redirects to `<url>/payment/success` or `<url>/payment/failed`. `product_code` `EPAYTEST` means the store is on eSewa's test environment.
+Build a hidden `<form method="post" action={action_url}>` with one hidden input per key **except** `action_url`, append it to the body and submit it. eSewa returns to the API, which verifies the payment and redirects to `<url>/payment/success` or `<url>/payment/failed`.
+
+- `product_code` `EPAYTEST` means the store is on eSewa's test environment, with the `rc-epay.esewa.com.np` form above. A live store gets `https://epay.esewa.com.np/api/epay/main/v2/form`.
+- `success_url` and `failure_url` point at `api.blanxer.com` in production and at `api-dev.blanxer.com` elsewhere.
+- **Known limitation (likely, not yet tested):** if the shopper cancels and eSewa returns without a valid `data` parameter, the API answers HTTP 400 JSON on its own host instead of redirecting to `/payment/failed`. The order stays `Inactive`.
 
 ### Khalti (redirect)
 
-`POST /payment/khalti/init` returns Khalti's own initiate response, which includes `payment_url` (and `pidx`, `expires_at`, `expires_in`). Set `window.location.href = payment_url`. Khalti returns to the API (`/payment/khalti/verify/<transaction>`), which redirects to success or failed. Khalti's error text is passed through as `{message}`; show it.
+`POST /payment/khalti/init` returns Khalti's own initiate response, which includes `payment_url` (and `pidx`, `expires_at`, `expires_in`). Set `window.location.href = payment_url`. Khalti returns to the API (`/payment/khalti/verify/<transaction>`), which redirects to success or failed. Khalti's error text is passed through as `{message}`; show it. It can read `[object Object]` when Khalti returns a structured error. Opening the verify link again for an order that is already paid returns HTTP 400 `{"message":"Payment already received"}` on the API host.
 
 ### FonePay (redirect)
 
@@ -474,7 +505,7 @@ Response:
 1. Open a modal. Render `qr_message` as a QR code and show `amount`.
 2. Start the hold timer (see [Stock holds](#stock-holds)).
 3. Every 5 seconds while the tab is visible, and right away when the shopper returns to the tab, call `GET /payment/dynamic_qr/check/<transaction>`. HTTP 200 `{"success": true}` = paid. HTTP 400 `{"message":"Payment not received"}` = not yet. Payment confirmation itself happens on the server, from Fonepay's websocket.
-4. A "Check payment" button runs the same check and says `Payment has not been received yet.` when it isn't.
+4. A **Check Payment** button runs the same check and says `Payment has not been received yet.` when it isn't.
 5. When paid: remove the ordered lines from the cart, close the modal, `router.push('/payment/success')`.
 
 Blanxer QR on a store whose QR request isn't approved fails with `QR request is not approved for this store`.
@@ -496,11 +527,11 @@ Blanxer QR on a store whose QR request isn't approved fails with `QR request is 
 - **Websocket:** open `socket_url`. Each message is JSON whose `transactionStatus` is itself a JSON string. When its `productNumber` equals `prn` and `paymentSuccess` is true, run the check below.
 - **Check:** every 10 seconds while visible (this one asks Fonepay, so less often), on tab return, and on "Check Status": `GET /payment/fonepay_checkout/check/<transaction>`. HTTP 200 `{"success": true, "amount": 4330}` = paid; HTTP 400 `{"message":"Payment not received"}` = not yet.
 - When paid: same as the QR above.
-- On `api-dev`, Checkout by Fonepay uses Fonepay's development credentials and charges 1.1, not the order amount.
+- Outside production (`api-dev`), Checkout by Fonepay uses Fonepay's development credentials and charges 1.1, not the order amount. The `amount` in the response is still the order's real amount.
 
 ### Errors when starting a payment
 
-If a start call fails, the component shows an error ("<Gateway> is not available at the moment, please try again later.") and stops. The order already exists as `Inactive`; the merchant sees it in the dashboard and may call the shopper.
+If a start call fails, the component shows that method's error (for example "Khalti payment is not available at the moment, please try again later."; for Khalti, Khalti's own message when there is one) and stops. (The hosted storefront shows the eSewa text for an NPX failure.) The order already exists as `Inactive`; the merchant sees it in the dashboard and may call the shopper. For redirect gateways the ordered lines were already removed from the cart, so they are gone even when the start fails.
 
 ## Stock holds
 
@@ -513,7 +544,8 @@ If a start call fails, the component shows an error ("<Gateway> is not available
 
 - Timer = `hold_seconds − 20` seconds, so a payment made in the last seconds still lands inside the hold. If `hold_seconds` is missing or ≤ 20, the timer is 280 seconds.
 - It is measured from when the QR opens, on the device clock.
-- Show the time left as `MM:SS`.
+- Show the time left as `MM:SS`. It turns red in the last 60 seconds.
+- When it runs out, the modal shows "QR is expired" with **Back to checkout** and **Go to home**.
 
 ### Releasing a hold
 
@@ -529,7 +561,7 @@ Release **only** when:
 1. the timer runs out (then show "QR is expired" and "Your items were released so other shoppers can buy them. If you already paid, your order is still confirmed."), or
 2. the shopper taps ✕ and confirms. While the QR is live, ✕ first asks "Cancel this payment?" with **Check payment** as the main button, then "Back to QR", then "Yes, cancel payment".
 
-**Never** release on tab switch, page hide or page leave: shoppers pay in their banking app while the QR stays open. A payment that lands after a release is still honoured. For redirect gateways the hold simply expires.
+**Never** release on tab switch, page hide or page leave: shoppers pay in their banking app while the QR stays open. A payment that lands after a release is still honoured. The units were already released, so this can oversell (known). For redirect gateways the hold simply expires.
 
 ## When the cart is cleared
 
@@ -547,7 +579,7 @@ These pages are not optional (rule 3):
 
 - every redirect gateway returns the shopper to `<url>/payment/success` or `<url>/payment/failed`;
 - the order confirmation email links to `<url>/track/<order_id>`;
-- once the site link is saved in Blanxer, SMS tracking links and the delivered email point at `<site>/track/<order_id>`.
+- once the site link is saved in Blanxer, the tracking link Blanxer generates (dashboard copy, `get_tracking_link`) and the delivered email point at `<site>/track/<order_id>`. (Whether SMS short links follow it is not yet verified.)
 
 If a page is missing, the shopper sees a 404 **after paying**. The package ships all three: `PaymentSuccess`, `PaymentFailed`, `OrderTracking`. Mark all three `noindex`.
 
@@ -575,11 +607,12 @@ Show "Payment for your order failed" and "However, you might receive call/sms so
 | `customer_full_name`, `customer_email`, `customer_address_city`, `customer_address`, `customer_address_landmark`, `customer_address_province` | |
 | `customer_phone_number` | Masked: the first 7 digits become `•••••••` |
 | `ordered_products[]` | `image_url`, `product_id`, `product_name`, `price`, `compare_at_price`, `variant_id`, `variant_name`, `quantity`, `print` |
-| `product_total_price`, `delivery_charge`, `customization_total`, `discount.d_value`, `discount.code`, `partial_payment_amount` | Total = `product_total_price + delivery_charge + customization_total − discount.d_value` |
+| `product_total_price`, `delivery_charge`, `customization_total`, `discount` (the full object: `d_value`, `code`, ...), `partial_payment_amount` | Total = `product_total_price + delivery_charge + customization_total − discount.d_value` |
+| `store` | The store id |
 | `review` | `{count, total_rating, received: [product ids], reviews: [ids]}` |
 | `reviews[]` | `product`, `images`, `review`, `rating` |
 
-The response has no `order_number`. An unknown id is HTTP 400 `{"message":"Order item not found"}`; show a "not found" page.
+The response has no `order_number`. An unknown id is HTTP 400 `{"message":"Order item not found"}`; an id that isn't 24 hex characters is HTTP 400 `{"error_type":"zod_validation","fields":{"order_id":"..."}}`. The package shows "Order not found" for both. (The hosted storefront redirects to `/` on any error.)
 
 What the page shows:
 
@@ -590,8 +623,8 @@ What the page shows:
 
 ## Meta events in the checkout
 
-- `InitiateCheckout` once, when the checkout has lines: `content_ids` (a variant line is `<product>_<variant>`, the same ids as the product feed), `content_type: 'product'`, `value` (the total), `currency: 'NPR'`, `num_items`.
-- `Purchase`: one `event_id` per order, sent in the order's `meta` block. COD: the server sends the CAPI Purchase and the browser fires the Pixel. Online: the success page fires both. Meta dedupes on `event_id`.
+- `InitiateCheckout` once, when the checkout has lines: `content_ids` (a variant line is `<product>_<variant>`, the same ids as the product feed), `content_type: 'product'`, `value` (the payable total), `currency: 'NPR'`, `num_items` (the number of unique content ids).
+- `Purchase`: `num_items` is the number of order lines. One `event_id` per order, sent in the order's `meta` block. COD: the server sends the CAPI Purchase and the browser fires the Pixel. Online: the success page fires both. Meta dedupes on `event_id`.
 
 Details: [SEO and tracking → Meta Pixel and Conversions API](https://developers.blanxer.com/seo-and-tracking.md#meta-pixel-and-conversions-api).
 
@@ -601,8 +634,9 @@ On any store, an order with `customer_phone_number` `0000000000`, or a `customer
 
 - The body is validated first, so every other field must still be valid.
 - The response has no `_id`. The checkout must treat `success` without `_id` as a test response and stop: no payment start, no redirect.
-- This tests the form, validation, delivery and coupon display. It can't test payments; see [Testing](https://developers.blanxer.com/testing.md).
+- It still counts toward the order rate limit (5 per 10 minutes per store and IP).
+- This tests the form, validation, delivery and coupon display. It can't test payments: there is no order to pay, so the gateway and QR screens are checked live (see [Testing](https://developers.blanxer.com/testing.md)).
 
 ## Not in v1
 
-Partial payment, offers and agreed delivery are not in the package's checkout v1. They come in checkout v1.1. Customer login, loyalty discounts and reward points are not part of BlanxerAPI.
+Partial payment, offers and agreed delivery are not in the package's checkout v1. They come in checkout v1.1. Neither is a print picker (see [Print add-on products](#print-add-on-products)). Customer login, loyalty discounts and reward points are not part of BlanxerAPI.

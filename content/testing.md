@@ -23,13 +23,15 @@ returns HTTP 200 `{"success": true}` and **creates no order**: no stock change, 
 - The response has no `_id`. The package's checkout stops there and shows "Test order accepted — no order was created for this test phone/email.": no payment start, no redirect, nothing in `sessionStorage`.
 - It can't test payments, stock holds or the tracking page, because no order exists.
 - Test orders still count toward the limit of 5 orders per 10 minutes per store and IP. After 5, wait or you get HTTP 429.
-- Applying a coupon is real even here: each successful apply reserves one use of that coupon for 5 minutes. Don't test a coupon with very few uses left.
+- Applying a coupon is real even here: for a coupon with a usage limit, each successful apply holds one use for about 12 seconds. Don't test a coupon with very few uses left.
 
 Use it for the form, the place select, delivery charges, COD availability per place, coupons (apply, then place), and that the request leaves from the browser (rule 5).
 
 ## 3. The sandbox store
 
 A sandbox store on `https://api-dev.blanxer.com` is planned for BlanxerAPI: every gateway in test mode, products with variants, weights and custom fields, delivery places with and without COD, coupons and a live flash sale. Its subdomain will be listed here when it is ready.
+
+**Until then, check the gateway and QR screens live** (see [the live check](#4-the-live-check)): the `0000000000` order creates nothing, so it never opens them.
 
 Point the site at it:
 
@@ -59,9 +61,10 @@ Notes:
 After deploying and saving the link in Blanxer:
 
 1. Open, on the live site: home, a product, a category, `/checkout`, `/payment/success`, `/payment/failed`, and a real `/track/<id>` (the merchant can give you one from the dashboard).
-2. Place **one real COD order** on the real store with the merchant's own phone number. Check it reaches `/track/<id>`, appears in the dashboard, and the SMS or email links to the new site.
+2. With the merchant's OK, place **one real COD order** on the real store with the merchant's own phone number. Check it reaches `/track/<id>`, appears in the dashboard, and the confirmation email links to the new site.
 3. Have the merchant **cancel it in the dashboard**, so stock goes back and it doesn't count as a sale.
-4. Run Lighthouse (mobile) on home, a product and checkout: ≥ 90, LCP < 2.5 s.
-5. Check `/sitemap.xml`, `/sitemap-catalog.xml` (its links must be on the live domain) and `/robots.txt`.
+4. For one online method the store uses, place a real order and open the gateway or QR screen, then stop without paying. Close the QR screen with ✕ → "Yes, cancel payment" (that releases the stock hold). Have the merchant cancel the order in the dashboard.
+5. Run Lighthouse (mobile) on home, a product and checkout: ≥ 90, LCP < 2.5 s.
+6. Check `/sitemap.xml`, `/sitemap-catalog.xml` (its links must be on the live domain) and `/robots.txt`.
 
 Don't make real online payments yourself. If the merchant wants to confirm a gateway, they pay a small real order themselves and refund or cancel it in Blanxer.

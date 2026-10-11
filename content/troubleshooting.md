@@ -46,12 +46,13 @@ The order was sent with the coupon **code** (`"coupon": "DASHAIN10"`). The serve
 
 | Message | Cause |
 |---|---|
-| `Coupan not found` | No coupon with that exact code in this store (codes are case-sensitive; upper-case the input) |
+| `Coupan not found` | No coupon with that exact code in this store. Codes are case-sensitive: the input is upper-cased, but a `?promo=` link is sent as written, so `?promo=dashain10` fails for `DASHAIN10` |
+| `Coupon not found` (at order time) | The coupon `_id` sent with the order no longer exists |
 | `Coupon is inactive` | Turned off in Blanxer |
-| `All the available coupons have been used.` | Used up. Each successful apply also reserves a use for 5 minutes, so heavy re-applying can trigger this |
+| `All the available coupons have been used.` | Used up. For a coupon with a usage limit, each successful apply also holds a use for about 12 seconds, so on the last use an order placed right after Apply can fail with this. Wait a few seconds and place it again |
 | `Coupon code not available` / `Coupon code is expired` | Before its start / after its end |
 | `Coupon is not applicable to any products` | A category coupon and no line in those categories |
-| `Coupon is only applicable for order value above N` | Subtotal + delivery under the minimum |
+| `Coupon is only applicable for order value above N` | Subtotal + customization + delivery under the minimum |
 | `Only cash on delivery can use this coupon` / `Only online payment method can use this coupon` | Payment method restriction |
 | `This coupon is not valid for <place>` | Place restriction |
 
@@ -65,6 +66,10 @@ The order was sent with the coupon **code** (`"coupon": "DASHAIN10"`). The serve
 - Make sure `AddToCart` stores the variant **`_id`**, not its name.
 - For old carts: drop the line and ask the shopper to add it again.
 
+### `Please choose a print for <name>`
+
+The product has a required print add-on, and the line has no `print_id`. The package has no print picker yet, so it can't sell that product. Ask the merchant to make the print optional, or leave the product off the site for now. See [Checkout → Print add-on products](https://developers.blanxer.com/checkout.md#print-add-on-products).
+
 ### `Either of the selected product is already deleted` / `... is out of stock`
 
 The product is no longer Active, or the stock is lower than the quantity (and it doesn't continue selling). Refresh the cart from the product data.
@@ -75,7 +80,7 @@ Other shoppers hold the last units while they pay. It clears within the hold tim
 
 ### HTTP 429 when placing orders
 
-More than 5 orders in 10 minutes from one IP for one store. The body is plain text (`Too many requests, please try again later.`), not JSON; handle that. If **every** shopper hits it, orders are being sent from the server (one shared Worker IP for everyone): move the call to the browser (rule 5).
+More than 5 order requests in 10 minutes from one IP for one store. Every request counts, including `0000000000` test orders and failed ones. The body is plain text (`Too many requests, please try again later.`), not JSON; handle that. If **every** shopper hits it, orders are being sent from the server (one shared Worker IP for everyone): move the call to the browser (rule 5).
 
 ### The QR payment never confirms
 
@@ -89,7 +94,7 @@ eSewa sends both success and failure back to the same API endpoint. A return wit
 
 ### Khalti shows an error before redirecting
 
-Khalti's own error text is passed through (for example a minimum amount or a configuration problem). Show it; the merchant may need to fix their Khalti settings in Blanxer.
+Khalti's own error text is passed through (for example a minimum amount or a configuration problem). Show it; the merchant may need to fix their Khalti settings in Blanxer. If it reads `[object Object]`, Khalti returned a structured error; check the store's Khalti keys in Blanxer.
 
 ## Catalog and data
 
@@ -103,7 +108,7 @@ An unknown slug is HTTP **400** `Product not found`, not 404. Catch it and call 
 
 ### Prices or stock lag behind the dashboard
 
-The site caches data for 60 seconds, and the API clears its own cache when the merchant saves. Wait a minute. The checkout always charges the current server price.
+The site caches data for 60 seconds. The API caches the product lists for up to 1 hour and clears them when the merchant saves products, categories or settings. Orders don't clear it, so stock in lists can lag by up to an hour; the product page itself isn't cached by the API. The checkout always charges the current server price and checks the current stock.
 
 ### `Domain not in use`
 
@@ -117,13 +122,18 @@ Public reads have been checked to work from plain `fetch`, `curl` and Node. The 
 
 ### The catalog sitemap or product feed links to `<sub>.blanxer.io`
 
-The site link isn't saved in Blanxer. Call `blanxer_set_storefront_url` (or BlanxerAPI → Your website). It takes effect on the next request.
+The site link isn't saved in Blanxer. Call `blanxer_set_storefront_url` (preview, then `{ dry_run: false, confirm_token }`), or the merchant saves it in BlanxerAPI → Your website. The API uses it on the next request, but HTTP caches (`max-age=3600`, plus `stale-while-revalidate`) and the site's own `/sitemap-catalog.xml` can serve old links for an hour or more.
 
 ### Search Console says the verification tag is missing
 
 - Check the home page source for `<meta name="google-site-verification" ...>`. The site must render the store's `meta_tags` plugin (`verificationMetadata(store)`).
 - After `blanxer_set_site_verification`, wait about a minute for the API and site caches.
 - The property in Search Console must be the exact host the site is served on (`https://mystore.com/`, not `www.` if that redirects).
+
+### The shopper got no confirmation email
+
+- With `checkout.receiver_info` on and a sender name filled, the email goes only to `sender_email`; none is sent when that is empty.
+- Online orders are emailed only once paid. COD orders are emailed when created.
 
 ### Confirmation emails link to the wrong site
 
@@ -160,4 +170,5 @@ Every file in `public/` must be ≤ 300 KB and ≤ 2560 px wide, as AVIF/WebP, r
 | `/customer/auth` or `/customer/account` call, or a login/account/wishlist/rewards page | Remove it (rule 7). Only `/customer/stock-alert` is allowed |
 | Order or payment call outside the browser | Move it into a client component; no server actions or route handlers for orders, coupons, payments, holds or stock alerts (rule 5) |
 | Image budget | See above |
+| No image marked as main (warning) | Add `preload` to each page's main (LCP) image. See [Images and speed](https://developers.blanxer.com/images-and-speed.md#loading-images) |
 | Lighthouse under 90 / LCP over 2.5 s | See [Images and speed → When the check fails](https://developers.blanxer.com/images-and-speed.md#when-the-check-fails) |
