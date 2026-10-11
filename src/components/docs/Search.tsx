@@ -58,7 +58,7 @@ export function Search({ index }: { index: SearchEntry[] }) {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="inline-flex h-9 items-center gap-3 rounded-lg border border-border bg-surface px-3 text-sm text-faint hover:border-faint hover:text-muted">
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex h-9 items-center gap-3 rounded-full border border-border bg-white px-3.5 text-sm text-faint hover:border-faint hover:text-muted">
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
           <circle cx="9" cy="9" r="5.5" />
           <path d="m13.2 13.2 3.3 3.3" strokeLinecap="round" />
@@ -68,8 +68,8 @@ export function Search({ index }: { index: SearchEntry[] }) {
       </button>
       {open ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Search docs">
-          <button type="button" aria-label="Close search" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-black/60">
+          <button type="button" aria-label="Close search" className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl shadow-black/15">
             <input
               ref={input}
               value={q}
@@ -98,7 +98,7 @@ export function Search({ index }: { index: SearchEntry[] }) {
                       type="button"
                       onMouseEnter={() => setAt(i)}
                       onClick={() => go(r.href)}
-                      className={`block w-full rounded-lg px-3 py-2 text-left ${i === at ? "bg-accent/15" : ""}`}
+                      className={`block w-full rounded-lg px-3 py-2 text-left ${i === at ? "bg-surface-2" : ""}`}
                     >
                       <span className="block text-sm text-fg">{r.section || r.title}</span>
                       <span className="block text-xs text-faint">{r.section ? `${r.group} · ${r.title}` : r.group}</span>

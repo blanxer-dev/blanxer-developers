@@ -25,7 +25,7 @@ export function Heading({ eyebrow, title, lead, align = "left" }: { eyebrow?: Re
 
 export function Card({ children, className = "", accent = false }: { children: ReactNode; className?: string; accent?: boolean }) {
   return (
-    <div className={`rounded-2xl border p-6 sm:p-7 ${accent ? "border-accent bg-accent text-white" : "border-border bg-surface"} ${className}`}>
+    <div className={`rounded-2xl border p-6 sm:p-7 ${accent ? "border-ink bg-ink text-white" : "border-border bg-surface"} ${className}`}>
       {children}
     </div>
   );
@@ -33,8 +33,8 @@ export function Card({ children, className = "", accent = false }: { children: R
 
 export function ButtonLink({ href, children, variant = "primary", className = "" }: { href: string; children: ReactNode; variant?: "primary" | "ghost"; className?: string }) {
   const base =
-    "inline-flex h-11 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
-  const styles = variant === "primary" ? "bg-accent text-white hover:bg-accent-hover" : "border border-border text-fg hover:border-faint hover:bg-surface";
+    "inline-flex h-11 items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  const styles = variant === "primary" ? "bg-ink text-white hover:bg-black" : "border border-border text-fg hover:border-faint hover:bg-surface";
   return (
     <a href={href} className={`${base} ${styles} ${className}`}>
       {children}

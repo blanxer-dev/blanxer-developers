@@ -46,7 +46,7 @@ export function PageActions({ markdown, mdUrl, title }: { markdown: string; mdUr
 
   return (
     <div ref={box} className="relative inline-flex">
-      <div className="inline-flex overflow-hidden rounded-lg border border-border bg-surface text-[13px]">
+      <div className="inline-flex overflow-hidden rounded-full border border-border bg-white text-[13px]">
         <button type="button" onClick={() => copy(markdown, "page")} className="inline-flex h-8 items-center gap-2 px-3 text-fg hover:bg-surface-2">
           <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
             <rect x="7" y="7" width="10" height="10" rx="2" />
@@ -61,7 +61,7 @@ export function PageActions({ markdown, mdUrl, title }: { markdown: string; mdUr
         </button>
       </div>
       {open ? (
-        <div role="menu" className="absolute right-0 top-10 z-30 w-64 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-2xl shadow-black/50">
+        <div role="menu" className="absolute right-0 top-10 z-30 w-64 overflow-hidden rounded-xl border border-border bg-white p-1 shadow-xl shadow-black/10">
           {items.map((it) => {
             const body = (
               <>

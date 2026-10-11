@@ -1,20 +1,22 @@
 @import "tailwindcss";
 
 /*
- * Blanxer Developers: the enterprise.blanxer.com look. Dark, minimal, purple (#883FFF) is the
- * only accent; hierarchy comes from type, spacing and hairline borders.
+ * Blanxer Developers: white and silver (owner, 2026-10-11, after argent.swmansion.com).
+ * Near-black text and buttons, chrome art, hairline borders. Purple (#883FFF) is kept for the
+ * <blanxer API> wordmark and small highlights only.
  */
 :root {
-  --bg: #0b0b10;
-  --surface: #131319;
-  --surface-2: #1a1a22;
-  --border: #26262f;
-  --fg: #f3f3f6;
-  --muted: #9a9aa8;
-  --faint: #6b6b78;
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #ececf0;
+  --border: #e3e3e8;
+  --fg: #111114;
+  --muted: #55555f;
+  --faint: #8b8b95;
   --accent: #883fff;
   --accent-hover: #7434e6;
-  --accent-text: #b78cff;
+  --accent-text: #7a35f0;
+  --ink: #141416;
 }
 
 @theme inline {
@@ -28,13 +30,14 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-text: var(--accent-text);
+  --color-ink: var(--ink);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -46,7 +49,7 @@ body {
 }
 
 ::selection {
-  background: rgba(136, 63, 255, 0.4);
+  background: rgba(136, 63, 255, 0.18);
 }
 
 /* Slow float for the hero art; off when the visitor asks for less motion. */
@@ -67,7 +70,7 @@ body {
 /* ---------------------------------------------------------------- docs prose */
 
 .prose {
-  color: #d6d6de;
+  color: #2c2c33;
   font-size: 15.5px;
   line-height: 1.75;
 }
@@ -80,7 +83,7 @@ body {
 .prose .anchor { position: absolute; left: -1.1em; padding-right: 0.3em; color: var(--faint); opacity: 0; text-decoration: none; font-weight: 400; }
 .prose :is(h2, h3, h4):hover .anchor { opacity: 1; }
 .prose p, .prose ul, .prose ol, .prose table, .prose blockquote, .prose pre { margin: 0 0 1.1rem; }
-.prose a { color: var(--accent-text); text-decoration: underline; text-decoration-color: rgba(183, 140, 255, 0.35); text-underline-offset: 3px; }
+.prose a { color: var(--accent-text); text-decoration: underline; text-decoration-color: rgba(122, 53, 240, 0.3); text-underline-offset: 3px; }
 .prose a:hover { text-decoration-color: var(--accent-text); }
 .prose strong { color: var(--fg); font-weight: 600; }
 .prose ul { list-style: disc; padding-left: 1.3rem; }
@@ -88,9 +91,9 @@ body {
 .prose li { margin: 0.3rem 0; }
 .prose li::marker { color: var(--faint); }
 .prose hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
-.prose blockquote { border-left: 2px solid var(--accent); background: rgba(136, 63, 255, 0.08); padding: 0.75rem 1rem; border-radius: 0 10px 10px 0; color: #e4e4ea; }
+.prose blockquote { border-left: 2px solid var(--accent); background: #f7f3ff; padding: 0.75rem 1rem; border-radius: 0 10px 10px 0; color: #2c2c33; }
 .prose blockquote p:last-child { margin-bottom: 0; }
-.prose :not(pre) > code { font-family: var(--font-mono); font-size: 0.86em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 0.1em 0.38em; color: #ece4ff; }
+.prose :not(pre) > code { font-family: var(--font-mono); font-size: 0.86em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 0.1em 0.38em; color: #1d1d22; }
 .prose .table-wrap { overflow-x: auto; margin: 0 0 1.2rem; border: 1px solid var(--border); border-radius: 12px; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0; }
 .prose th { text-align: left; font-weight: 600; color: var(--fg); background: var(--surface); }
@@ -98,7 +101,7 @@ body {
 .prose tr:last-child td { border-bottom: 0; }
 
 /* Code blocks: shiki colours inline; the frame, language tag and copy button are ours. */
-.prose .code { position: relative; margin: 0 0 1.2rem; border: 1px solid var(--border); border-radius: 12px; background: #0f0f15; overflow: hidden; }
+.prose .code { position: relative; margin: 0 0 1.2rem; border: 1px solid var(--border); border-radius: 12px; background: #fafafb; overflow: hidden; }
 .prose .code-head { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 0.5rem 0 0.9rem; border-bottom: 1px solid var(--border); font: 12px var(--font-mono); color: var(--faint); }
 .prose .code pre { margin: 0; padding: 0.9rem 1rem; overflow-x: auto; background: transparent !important; font-family: var(--font-mono); font-size: 13px; line-height: 1.65; }
 .prose .code pre code { font-family: inherit; }

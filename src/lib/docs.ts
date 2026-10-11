@@ -51,7 +51,7 @@ const plain = (html: string) =>
 const LANGS = ["bash", "html", "http", "json", "jsonc", "toml", "ts", "tsx", "yaml"];
 let highlighter: Promise<Highlighter> | null = null;
 const getHighlighter = () =>
-  (highlighter ??= createHighlighter({ themes: ["github-dark-default"], langs: LANGS }));
+  (highlighter ??= createHighlighter({ themes: ["github-light-default"], langs: LANGS }));
 
 /**
  * Guides link to each other as https://developers.blanxer.com/api-docs/<slug>.md (right for
@@ -104,7 +104,7 @@ export async function renderDoc(slug: string): Promise<RenderedDoc> {
     const language = (lang || "").split(/\s/)[0];
     const known = LANGS.includes(language);
     const body = known
-      ? hl.codeToHtml(text, { lang: language, theme: "github-dark-default" })
+      ? hl.codeToHtml(text, { lang: language, theme: "github-light-default" })
       : `<pre><code>${escapeHtml(text)}</code></pre>`;
     return `<div class="code"><div class="code-head"><span>${escapeHtml(language || "text")}</span><button type="button" class="copy-code" data-copy-code>Copy</button></div>${body}</div>\n`;
   };

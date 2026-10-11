@@ -22,7 +22,7 @@ function NavList({ groups, onPick }: { groups: Group[]; onPick?: () => void }) {
                   href={hrefOf(p.slug)}
                   onClick={onPick}
                   aria-current={here(p.slug) ? "page" : undefined}
-                  className={`block rounded-lg px-3 py-1.5 transition-colors ${here(p.slug) ? "bg-accent/15 font-medium text-fg" : "text-muted hover:bg-surface hover:text-fg"}`}
+                  className={`block rounded-lg px-3 py-1.5 transition-colors ${here(p.slug) ? "bg-surface-2 font-medium text-fg" : "text-muted hover:bg-surface hover:text-fg"}`}
                 >
                   {p.nav}
                 </Link>
@@ -75,7 +75,7 @@ export function DocsMenuButton({ groups }: { groups: Group[] }) {
       </button>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Docs menu">
-          <button type="button" aria-label="Close" className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
+          <button type="button" aria-label="Close" className="absolute inset-0 bg-black/25" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-[82%] max-w-xs overflow-y-auto border-r border-border bg-bg px-3 py-6">
             <NavList groups={groups} onPick={() => setOpen(false)} />
           </div>

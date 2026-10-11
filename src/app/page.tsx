@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ButtonLink, Card, Check, Eyebrow, Heading, JsonLd, Section } from "@/components/ui";
+import { Card, Check, Heading, JsonLd, Section } from "@/components/ui";
 import { FaqList, SiteFooter, SiteHeader } from "@/components/site";
 import { PromptBox } from "@/components/PromptBox";
-import { agents } from "@/lib/agent-icons";
+import { AgentDemo } from "@/components/AgentDemo";
+import { AgentLogos } from "@/components/AgentLogos";
+import { Logo } from "@/components/Logo";
 import { agentBuilds, blanxerPowers, DASHBOARD_URL, devLinks, HOME_DESCRIPTION, homeFaqs, LEGAL_NAME, SITE_NAME, SITE_URL, steps } from "@/lib/site";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -20,17 +22,10 @@ const features: { title: string; text: string }[] = [
 
 const payments = ["Cash on Delivery", "eSewa", "Khalti", "Fonepay", "Fonepay QR", "Checkout by Fonepay", "Blanxer QR", "NPX", "Nabil card"];
 
-const softwareLd = {
+const ld = {
   "@context": "https://schema.org",
   "@graph": [
-    {
-      "@type": "Organization",
-      "@id": "https://blanxer.com/#org",
-      name: "Blanxer",
-      legalName: LEGAL_NAME,
-      url: "https://blanxer.com",
-      logo: `${SITE_URL}/apple-touch-icon.png`,
-    },
+    { "@type": "Organization", "@id": "https://blanxer.com/#org", name: "Blanxer", legalName: LEGAL_NAME, url: "https://blanxer.com", logo: `${SITE_URL}/apple-touch-icon.png` },
     { "@type": "WebSite", "@id": `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, publisher: { "@id": "https://blanxer.com/#org" } },
     {
       "@type": "SoftwareApplication",
@@ -42,94 +37,80 @@ const softwareLd = {
       offers: { "@type": "Offer", price: "0", priceCurrency: "NPR", description: "Included in every Blanxer plan" },
       publisher: { "@id": "https://blanxer.com/#org" },
     },
-    {
-      "@type": "HowTo",
-      name: "Build an ecommerce website with an AI agent on Blanxer",
-      step: steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.title, text: s.text })),
-    },
-    {
-      "@type": "FAQPage",
-      mainEntity: homeFaqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-    },
+    { "@type": "HowTo", name: "Build an ecommerce website with an AI agent on Blanxer", step: steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.title, text: s.text })) },
+    { "@type": "FAQPage", mainEntity: homeFaqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
   ],
 };
+
+/** Frosted glass over the silver scene, as on argent.swmansion.com. */
+const glass = "rounded-[24px] border border-white/25 bg-[rgba(58,60,66,0.38)] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.5)] backdrop-blur-2xl";
 
 export default function Home() {
   return (
     <>
-      <JsonLd data={softwareLd} />
-      <SiteHeader />
+      <JsonLd data={ld} />
 
-      <main id="top" className="flex-1">
-        {/* Hero */}
-        <section className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[80%]"
-            style={{
-              background:
-                "radial-gradient(ellipse 70% 70% at 50% 108%, rgba(136, 63, 255, 0.55) 0%, rgba(136, 63, 255, 0.24) 32%, rgba(136, 63, 255, 0.06) 58%, transparent 78%)",
-            }}
-          />
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(183,140,255,0.7) 50%, transparent)" }} />
-          <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-5 pb-20 pt-14 sm:px-8 sm:pb-28 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
-            <div className="flex flex-col items-start gap-7">
-              <Eyebrow>BlanxerAPI · for Claude Code, Codex and every AI agent</Eyebrow>
-              <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-                Your AI agent builds the store. <span className="text-accent-text">Blanxer powers it.</span>
-              </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-muted">
-                Paste one prompt into Claude Code, Codex, Cursor or Gemini CLI. Your agent builds a custom Next.js ecommerce website for your Blanxer store and puts it
-                live on your own Cloudflare account. Products, stock, checkout, payments and delivery keep running on Blanxer.
-              </p>
-              <div id="prompt" className="w-full max-w-xl scroll-mt-24">
-                <PromptBox />
+      <div className="px-3 pt-3 sm:px-4 sm:pt-4">
+        {/* Hero: the silver scene, the floating nav, a glass card with the pitch, then the demo and the prompt. */}
+        <section className="relative mx-auto w-full max-w-[1400px] overflow-hidden rounded-[28px] bg-[#a9adb4]">
+          <Image src="/art/hero-scene.webp" alt="" fill priority sizes="(min-width: 1400px) 1400px, 100vw" className="select-none object-cover object-[50%_0%]" />
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-[#8e939b]/70" />
+
+          <div className="relative pb-12 pt-3 sm:pb-16 sm:pt-4">
+            <SiteHeader />
+
+            <div className="mx-auto mt-[clamp(150px,25vw,340px)] w-full max-w-[880px] px-3">
+              <div className={`${glass} px-6 py-10 text-center text-white sm:px-12 sm:py-14`}>
+                <p className="flex items-center justify-center gap-2 text-sm text-white/80">
+                  Powered by
+                  <span className="rounded-md bg-white/90 px-2 py-0.5">
+                    <Logo size="sm" />
+                  </span>
+                </p>
+                <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-[3.4rem]">
+                  Your AI agent builds the store. Blanxer powers it.
+                </h1>
+                <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                  Paste one prompt. Your agent builds a custom ecommerce website for your Blanxer store and puts it live on your own Cloudflare.
+                </p>
               </div>
-              <p className="text-sm text-faint">
-                No code to write. Included in every Blanxer plan.{" "}
-                <Link href="/api-docs/" className="text-muted underline decoration-border underline-offset-4 hover:text-fg">
-                  Read the docs
-                </Link>
-              </p>
-            </div>
-            <div className="mx-auto w-full max-w-md lg:max-w-none">
-              <Image src="/art/hero.webp" alt="A glass browser window showing an online store, with a code tag and a shopping bag" width={1100} height={758} priority className="bx-float h-auto w-full select-none" />
+
+              <div id="prompt" className="mt-4 grid scroll-mt-24 gap-4 md:grid-cols-2">
+                <div className={`${glass} p-4 sm:p-5`}>
+                  <AgentDemo />
+                </div>
+                <div className={`${glass} flex flex-col justify-center gap-4 p-4 sm:p-6`}>
+                  <PromptBox compact />
+                  <p className="text-center text-sm text-white/90">Paste this into your AI agent.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
+      </div>
 
+      <main id="top" className="flex-1">
         {/* Works with */}
-        <div className="border-b border-border">
-          <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">
-            <p className="text-center text-xs font-medium uppercase tracking-[0.18em] text-faint">Works with the agent you already use</p>
-            <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-9 gap-y-5">
-              {agents.map((a) => (
-                <li key={a.name} className="flex items-center gap-2.5 text-muted">
-                  <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5 fill-current">
-                    <path d={a.path} />
-                  </svg>
-                  <span className="text-sm font-medium">{a.name}</span>
-                </li>
-              ))}
-            </ul>
+        <section className="px-5 pb-6 pt-20 text-center sm:pt-24">
+          <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">Works with</h2>
+          <div className="mt-10">
+            <AgentLogos />
           </div>
-        </div>
+          <p className="mx-auto mt-10 max-w-md text-sm text-muted">Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Windsurf, Zed, Cline, or any agent that can run commands and read a web page.</p>
+        </section>
 
         {/* How it works */}
         <Section id="how">
           <Heading eyebrow="How it works" title="One prompt. A live store on your own domain." lead="You talk to your agent the way you would talk to a developer. It reads the BlanxerAPI docs by itself and asks you only what it needs." />
           <ol className="mt-14 grid gap-5 md:grid-cols-3">
             {steps.map((s, i) => (
-              <li key={s.title} className="relative overflow-hidden rounded-2xl border border-border bg-surface p-6 sm:p-7">
-                <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(circle at ${["100% 0%", "100% 100%", "0% 100%"][i]}, rgba(136,63,255,0.42) 0%, rgba(136,63,255,0.12) 34%, transparent 62%)` }} />
-                <div className="relative">
-                  <div className="flex items-start justify-between">
-                    <span className="font-mono text-sm text-accent-text">0{i + 1}</span>
-                    <Image src={s.art} alt="" width={480} height={480} className="h-24 w-auto select-none sm:h-28" />
-                  </div>
-                  <h3 className="mt-5 text-xl font-semibold">{s.title}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.text}</p>
+              <li key={s.title} className="rounded-3xl border border-border bg-surface p-6 sm:p-7">
+                <div className="flex items-start justify-between">
+                  <span className="font-mono text-sm text-faint">0{i + 1}</span>
+                  <Image src={s.art} alt="" width={420} height={420} className="h-24 w-auto select-none sm:h-28" />
                 </div>
+                <h3 className="mt-5 text-xl font-semibold">{s.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.text}</p>
               </li>
             ))}
           </ol>
@@ -137,17 +118,9 @@ export default function Home() {
 
         {/* Agents build, Blanxer powers */}
         <Section id="powered" className="border-t border-border">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.8fr]">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.75fr]">
             <div>
-              <Heading
-                eyebrow="Custom front, proven engine"
-                title={
-                  <>
-                    Agents build it. <span className="text-accent-text">Blanxer powers it.</span>
-                  </>
-                }
-                lead="Your website looks like nobody else's. Behind it runs the same Blanxer that already handles your orders, so nothing about selling has to be rebuilt or trusted to new code."
-              />
+              <Heading eyebrow="Custom front, proven engine" title="Agents build it. Blanxer powers it." lead="Your website looks like nobody else's. Behind it runs the same Blanxer that already handles your orders, so nothing about selling has to be rebuilt or trusted to new code." />
               <div className="mt-10 grid gap-5 sm:grid-cols-2">
                 <Card>
                   <p className="font-mono text-xs uppercase tracking-wide text-faint">Your agent builds</p>
@@ -161,7 +134,7 @@ export default function Home() {
                   </ul>
                 </Card>
                 <Card accent>
-                  <p className="font-mono text-xs uppercase tracking-wide text-white/70">Blanxer powers</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-white/60">Blanxer powers</p>
                   <ul className="mt-4 space-y-3 text-[15px]">
                     {blanxerPowers.map((t) => (
                       <li key={t} className="flex gap-2.5">
@@ -173,7 +146,7 @@ export default function Home() {
                 </Card>
               </div>
             </div>
-            <Image src="/art/engine.webp" alt="A website layer floating above a commerce engine of gears, parcels and payments" width={800} height={798} className="mx-auto w-full max-w-sm select-none" />
+            <Image src="/art/engine.webp" alt="A website layer floating above a commerce engine of gears, parcels and payments" width={723} height={760} className="mx-auto w-full max-w-sm select-none" />
           </div>
         </Section>
 
@@ -195,7 +168,7 @@ export default function Home() {
             </div>
             <ul className="flex flex-wrap gap-2">
               {payments.map((p) => (
-                <li key={p} className="rounded-full border border-border bg-surface-2 px-3 py-1 text-sm text-fg">
+                <li key={p} className="rounded-full border border-border bg-white px-3 py-1 text-sm text-fg">
                   {p}
                 </li>
               ))}
@@ -222,10 +195,10 @@ export default function Home() {
             <ul className="grid content-start gap-3 sm:grid-cols-2">
               {devLinks.map((l) => (
                 <li key={l.title}>
-                  <a href={l.href} {...(l.href.startsWith("http") ? { target: "_blank", rel: "noopener" } : {})} className="group block h-full rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent/60">
+                  <a href={l.href} {...(l.href.startsWith("http") ? { target: "_blank", rel: "noopener" } : {})} className="group block h-full rounded-2xl border border-border bg-white p-5 transition-colors hover:border-ink/40 hover:bg-surface">
                     <p className="flex items-center justify-between gap-3 font-mono text-[15px] text-fg">
                       <span className="min-w-0 truncate">{l.title}</span>
-                      <span aria-hidden className="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent-text">→</span>
+                      <span aria-hidden className="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-fg">→</span>
                     </p>
                     <p className="mt-1.5 text-sm text-muted">{l.text}</p>
                   </a>
@@ -243,27 +216,30 @@ export default function Home() {
           </div>
         </Section>
 
-        {/* Closing */}
-        <section className="relative overflow-hidden border-t border-border">
-          <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 80% at 50% 0%, rgba(136,63,255,0.35) 0%, rgba(136,63,255,0.08) 45%, transparent 75%)" }} />
-          <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-7 px-5 py-24 text-center sm:px-8">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Start your store website now.</h2>
-            <p className="max-w-xl text-lg text-muted">Copy the prompt, paste it into your agent, and answer its questions. Signed in to Blanxer? The dashboard fills in your store for you.</p>
-            <div className="w-full max-w-xl">
-              <PromptBox compact />
+        {/* Closing: the dark block, as on argent.swmansion.com */}
+        <div className="px-3 pb-4 sm:px-4">
+          <section className="relative mx-auto w-full max-w-[1400px] overflow-hidden rounded-[28px] bg-ink text-white">
+            <Image src="/art/emblem.webp" alt="" width={1000} height={659} className="pointer-events-none absolute -bottom-20 -right-24 hidden w-[440px] max-w-none select-none opacity-30 lg:block" />
+            <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-7 px-5 py-24 text-center sm:px-8">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">Start your store website now.</h2>
+              <p className="max-w-xl text-lg text-white/70">Copy the prompt, paste it into your agent, and answer its questions. Signed in to Blanxer? The dashboard fills in your store for you.</p>
+              <div className="w-full max-w-xl">
+                <PromptBox compact />
+              </div>
+              <div className="flex flex-wrap justify-center gap-3">
+                <a href={DASHBOARD_URL} className="inline-flex h-11 items-center rounded-full bg-white px-6 text-sm font-medium text-ink hover:bg-white/90">
+                  Open BlanxerAPI in your dashboard
+                </a>
+                <Link href="/api-docs/quickstart/" className="inline-flex h-11 items-center rounded-full border border-white/25 px-6 text-sm font-medium text-white hover:bg-white/10">
+                  Read the quickstart
+                </Link>
+              </div>
             </div>
-            <div className="flex flex-wrap justify-center gap-3">
-              <ButtonLink href={DASHBOARD_URL}>Open BlanxerAPI in your dashboard</ButtonLink>
-              <ButtonLink href="/api-docs/quickstart/" variant="ghost">
-                Read the quickstart
-              </ButtonLink>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
 
       <SiteFooter />
     </>
   );
 }
-

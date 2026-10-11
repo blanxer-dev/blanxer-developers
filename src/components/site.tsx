@@ -2,30 +2,58 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { GITHUB_ORG, LEGAL_NAME, type Faq } from "@/lib/site";
 
-/** The sticky top bar, shared by the landing page and the docs. */
-export function SiteHeader({ wide = false, children }: { wide?: boolean; children?: React.ReactNode }) {
-  return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur">
-      <div className={`mx-auto flex h-16 w-full items-center justify-between gap-4 px-5 sm:px-8 ${wide ? "max-w-[1440px]" : "max-w-6xl"}`}>
-        <div className="flex items-center gap-3">
-          {children}
-          <Link href="/" aria-label="BlanxerAPI home" className="flex items-center">
-            <Logo />
-          </Link>
+const navLinks = (
+  <>
+    <Link href="/api-docs/" className="hidden hover:text-fg sm:inline">
+      Docs
+    </Link>
+    <a href="/llms.txt" className="hidden font-mono text-[13px] hover:text-fg md:inline">
+      llms.txt
+    </a>
+    <a href={GITHUB_ORG} target="_blank" rel="noopener" className="hidden hover:text-fg md:inline">
+      GitHub
+    </a>
+  </>
+);
+
+const cta = (
+  <Link href="/#prompt" className="inline-flex h-9 items-center whitespace-nowrap rounded-full bg-ink px-4 text-sm font-medium text-white hover:bg-black">
+    Get the prompt
+  </Link>
+);
+
+/**
+ * Landing page: a floating frosted pill over the hero (after argent.swmansion.com).
+ * Docs (`bar`): a plain full-width bar, with the docs menu button passed as children.
+ */
+export function SiteHeader({ bar = false, children }: { bar?: boolean; children?: React.ReactNode }) {
+  if (bar) {
+    return (
+      <header className="sticky top-0 z-40 border-b border-border bg-white/85 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8">
+          <div className="flex items-center gap-3">
+            {children}
+            <Link href="/" aria-label="BlanxerAPI home" className="flex items-center">
+              <Logo />
+            </Link>
+          </div>
+          <nav aria-label="Primary" className="flex items-center gap-2 text-sm text-muted sm:gap-6">
+            {navLinks}
+            {cta}
+          </nav>
         </div>
+      </header>
+    );
+  }
+  return (
+    <header className="sticky top-3 z-40 px-3 sm:top-4">
+      <div className="mx-auto flex h-14 w-full max-w-[880px] items-center justify-between gap-4 rounded-full border border-white/60 bg-white/55 pl-5 pr-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+        <Link href="/" aria-label="BlanxerAPI home" className="flex items-center">
+          <Logo />
+        </Link>
         <nav aria-label="Primary" className="flex items-center gap-2 text-sm text-muted sm:gap-6">
-          <Link href="/api-docs/" className="hidden hover:text-fg sm:inline">
-            Docs
-          </Link>
-          <a href="/llms.txt" className="hidden font-mono text-[13px] hover:text-fg md:inline">
-            llms.txt
-          </a>
-          <a href={GITHUB_ORG} target="_blank" rel="noopener" className="hidden hover:text-fg md:inline">
-            GitHub
-          </a>
-          <Link href="/#prompt" className="inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover">
-            Get the prompt
-          </Link>
+          {navLinks}
+          {cta}
         </nav>
       </div>
     </header>
