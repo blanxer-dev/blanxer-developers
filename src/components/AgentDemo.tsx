@@ -42,7 +42,7 @@ export function AgentDemo() {
         </span>
         <span>your agent</span>
       </div>
-      <ol className="min-h-[15rem] flex-1 space-y-1.5 px-4 py-4" aria-label="What your agent does">
+      <ol className="min-h-[11rem] flex-1 space-y-1.5 px-4 py-4" aria-label="What your agent does">
         {lines.map((l, i) => (
           <li
             key={l.text}

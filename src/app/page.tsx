@@ -53,21 +53,21 @@ export default function Home() {
           <Image src="/art/hero-scene.webp" alt="" fill priority sizes="(min-width: 1400px) 1400px, 100vw" className="select-none object-cover object-[50%_0%]" />
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-[#8e939b]/70" />
 
-          <div className="relative pb-12 pt-3 sm:pb-16 sm:pt-4">
+          <div className="relative pb-6 pt-3 sm:pb-8 sm:pt-4">
             <SiteHeader />
 
-            <div className="mx-auto mt-[clamp(150px,25vw,340px)] w-full max-w-[880px] px-3">
-              <div className={`${glass} px-6 py-10 text-center text-white sm:px-12 sm:py-14`}>
+            <div className="mx-auto mt-[clamp(72px,11vw,150px)] w-full max-w-[1040px] px-3">
+              <div className={`${glass} px-6 py-8 text-center text-white sm:px-12 sm:py-10`}>
                 <p className="flex items-center justify-center gap-2 text-sm text-white/80">
                   Powered by
                   <span className="rounded-md bg-white/90 px-2 py-0.5">
                     <Logo size="sm" />
                   </span>
                 </p>
-                <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-[3.4rem]">
+                <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-[3rem]">
                   Your AI agent builds the store. Blanxer powers it.
                 </h1>
-                <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
                   Paste one prompt. Your agent builds your store website and puts it online.
                 </p>
               </div>
@@ -76,7 +76,7 @@ export default function Home() {
                 <div className={`${glass} min-w-0 p-4 sm:p-5`}>
                   <AgentDemo />
                 </div>
-                <div className={`${glass} order-first flex min-w-0 flex-col justify-center gap-4 p-4 sm:p-6 md:order-none`}>
+                <div className={`${glass} order-first flex min-w-0 flex-col justify-center gap-3 p-4 sm:p-5 md:order-none`}>
                   <PromptBox compact />
                   <p className="text-center text-sm text-white/90">Paste this into your AI agent.</p>
                 </div>
