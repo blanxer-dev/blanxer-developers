@@ -13,13 +13,3 @@ export function Logo({ className = "", size = "md" }: { className?: string; size
     </span>
   );
 }
-
-/** The square mark for small places (favicon, app icon): `</>` on brand purple. */
-export function LogoMark({ className = "h-8 w-8" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true" className={className}>
-      <rect width="64" height="64" rx="16" fill="#883FFF" />
-      <path d="M24 21 13 32l11 11M40 21l11 11-11 11M35.5 17.5l-7 29" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
