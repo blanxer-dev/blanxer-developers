@@ -18,12 +18,12 @@ const features: { title: string; text: string }[] = [
 ];
 
 /** Logos are the same files the dashboard's Setting → Payment shows. Cash on Delivery has none, so it gets an icon. */
-const payments: { name: string; logo?: string; w: number }[] = [
+const payments: { name: string; logo?: string; w: number; big?: boolean }[] = [
   { name: "Cash on Delivery", w: 0 },
   { name: "eSewa", logo: "/pay/esewa.webp", w: 320 },
   { name: "Khalti", logo: "/pay/khalti.webp", w: 249 },
   { name: "Fonepay", logo: "/pay/fonepay.webp", w: 333 },
-  { name: "Fonepay QR", logo: "/pay/fonepay_dynamic.webp", w: 97 },
+  { name: "Fonepay QR", logo: "/pay/fonepay_dynamic.webp", w: 97, big: true },
   { name: "Checkout by Fonepay", logo: "/pay/checkout-fonepay.webp", w: 309 },
   { name: "NPX", logo: "/pay/npx.webp", w: 218 },
   { name: "Nabil card", logo: "/pay/ncard.webp", w: 174 },
@@ -40,8 +40,6 @@ const couriers: { name: string; logo: string; w: number; h?: number }[] = [
   { name: "Fab Bud", logo: "/ship/fabbud.webp", w: 127 },
   { name: "Daraz Express", logo: "/ship/daraz_express.webp", w: 164 },
   { name: "Expo Express", logo: "/ship/expo_express.webp", w: 516 },
-  { name: "Aramex", logo: "/ship/aramex.webp", w: 579 },
-  { name: "Shipday", logo: "/ship/shipday.webp", w: 84 },
 ];
 
 const ld = {
@@ -188,7 +186,7 @@ export default function Home() {
               {payments.map((p) => (
                 <li key={p.name} className="flex h-8 items-center" title={p.name}>
                   {p.logo ? (
-                    <Image src={p.logo} alt={p.name} width={p.w} height={96} className="h-full w-auto max-w-[120px] object-contain" />
+                    <Image src={p.logo} alt={p.name} width={p.w} height={96} className={`w-auto max-w-[120px] object-contain ${p.big ? "h-12" : "h-full"}`} />
                   ) : (
                     <span className="flex items-center gap-2 text-sm font-medium text-[#15803d]">
                       <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
