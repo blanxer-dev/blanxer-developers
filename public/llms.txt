@@ -12,7 +12,7 @@ Hard rules (full text: https://developers.blanxer.com/rules.md):
 2. Start from blanxer-storefront-starter and keep @blanxer/storefront. Restyle the checkout; never rewrite payment, delivery, coupon or order logic, never call payment endpoints directly. The checkout always shows "Checkout Powered by Blanxer" ("Blanxer" links to https://blanxer.com) under the place-order button: restyle it via `.bx-powered-by`, never remove or hide it.
 3. Required routes at these exact paths: /checkout, /payment/success, /payment/failed, /track/[id].
 4. Send the site's own origin as `url`; never hardcode it.
-5. Orders, coupons, payment starts, hold release and back-in-stock calls run in the browser only.
+5. Orders, coupons, payment starts, hold release, back-in-stock, forms, cancel and review run in the browser only.
 6. No secrets in the site (no sk_ key, MCP token, login or gateway key). Never ask the merchant for a key.
 7. No customer login: no /customer/auth calls, no account, login, wishlist or rewards pages.
 8. Don't invent data: prices, stock, delivery and payment methods come only from the API.

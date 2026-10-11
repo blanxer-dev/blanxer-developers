@@ -6,7 +6,7 @@ These rules apply to every BlanxerAPI website. Read them before writing any code
 2. **Start from `blanxer-storefront-starter` and keep `@blanxer/storefront`.** Restyle the checkout through theme props and wrappers. **Never rewrite** the payment, delivery, coupon or order logic, and never call payment endpoints directly. The checkout's **"Checkout Powered by Blanxer"** line under the place-order button ("Blanxer" links to https://blanxer.com) is part of it: restyle it through `.bx-powered-by`, never remove or hide it.
 3. **Required routes:** `/checkout`, `/payment/success`, `/payment/failed` and `/track/[id]`, at these exact paths.
 4. **Send the site's own origin as `url`.** The package does it; never hardcode it.
-5. **Browser-only calls:** orders, coupons, payment starts, hold release and back-in-stock go from client components. Never from server code, route handlers or server actions.
+5. **Browser-only calls:** orders, coupons, payment starts, hold release, back-in-stock, forms, cancel and review go from client components. Never from server code, route handlers or server actions.
 6. **No secrets in the site.** No `sk_` key, MCP token, dashboard login or gateway key in code, `.env` or the build. Never ask the merchant to paste a key. Store changes go through the Blanxer MCP.
 7. **No customer login.** No `/customer/auth/*` calls, and no account, login, wishlist or rewards pages.
 8. **Don't invent data.** Prices, stock, delivery and payment methods come only from the API. No sample products or placeholder prices.
