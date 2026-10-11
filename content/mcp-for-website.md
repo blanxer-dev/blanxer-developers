@@ -46,34 +46,47 @@ The tools act as the person who signed in, with their role in the store. Most wr
 |---|---|---|
 | Find SEO gaps | `blanxer_audit_seo` | — |
 | Write product titles and descriptions for search | `blanxer_update_product_status_seo`, `blanxer_bulk_update_products` | Product `seo_*` → page metadata |
-| Write category and brand SEO | `blanxer_bulk_update_categories_seo`, `blanxer_update_category`, `blanxer_update_brand` | `check_domain.categories`, brand details |
+| Write category and brand SEO | `blanxer_bulk_update_categories_seo`, `blanxer_update_category`, `blanxer_update_brand` (brand SEO is saved only when the brand has a page; `''` can't clear a field) | `check_domain.categories`, brand details |
 | Verify Search Console, add GA / GTM | `blanxer_set_site_verification` | `check_domain.plugins` → the package renders the tags |
 | Add products and photos | `blanxer_create_product`, `blanxer_bulk_create_products`, `blanxer_bulk_import_products`, `blanxer_upload_product_image`, `blanxer_request_image_upload` | Product endpoints |
 | Create categories and brands for the menus | `blanxer_create_category`, `blanxer_create_brand`, `blanxer_reorder_categories` | Categories / brands |
 | Set up launch coupons | `blanxer_create_coupon` | `/public/coupon` |
 | Fix delivery places, charges and COD | `blanxer_get_delivery_charges`, `blanxer_update_delivery_charges` | `/public/delivery_charge` |
-| Change name, logo, favicon, colours (shared with the Blanxer site and emails) | `blanxer_update_store_profile`, `blanxer_update_appearance` | `check_domain.customization` |
-| Write blog posts | `blanxer_create_blog_post`, `blanxer_set_blog_post_status` | `/public/blog/*` |
-| **Save the website link** | **`blanxer_set_storefront_url`** (new) | — |
-| Get the feed and sitemap URLs | `blanxer_get_store_context` | — |
+| Change the store name or description (shared with the Blanxer site) | `blanxer_update_store_profile` (only the top-level `name` and `description`) | `check_domain.name`, `description` |
+| Change logo, favicon, brand name or colours (shared with the Blanxer site and emails) | `blanxer_update_appearance` | `check_domain.customization` |
+| Write blog posts | `blanxer_create_blog_post` (an empty post), then its body with `blanxer_add_section` / `blanxer_update_section` using `{ post_id }`, then `blanxer_set_blog_post_status` | `/public/blog/*` |
+| **Save the website link** | **`blanxer_set_storefront_url`** (new): preview, then `{ dry_run: false, confirm_token }` | — |
+| Get the feed and sitemap URLs | `blanxer_get_store_context` (only once a website link is saved) | — |
 | Retire the subdomain site | `blanxer_update_appearance { store_visibility: 'hidden_on_subdomain' }` | — |
 
-`blanxer_how_to` returns step-by-step guides for store tasks (SEO pass, editing products, and more).
+`blanxer_how_to` returns step-by-step guides for store tasks (SEO pass, editing products, and more). For the whole custom-site flow: `blanxer_how_to { operation: 'custom_website' }`.
+
+With a website link saved, `blanxer_audit_seo` treats the custom site as the live site and reports `<site>/sitemap.xml` as the sitemap to submit.
 
 ### `blanxer_set_storefront_url`
 
 ```
-blanxer_set_storefront_url { url: "https://mystore.com" }   // save or change
-blanxer_set_storefront_url { url: null }                    // clear
+blanxer_set_storefront_url { url: "https://mystore.com" }              // preview a save or change
+blanxer_set_storefront_url { url: null }                               // preview clearing it
+blanxer_set_storefront_url { dry_run: false, confirm_token: "..." }    // apply, after the merchant's yes
 ```
 
 - Owner or manager.
-- It shows the old and the new value and asks for confirmation.
-- Blanxer cleans the link to `https://<host>`: it must be `https`, with no path, query, port or login, and not an IP or `localhost`. A `*.workers.dev` link is fine.
-- It returns the product feed URL, the sitemap URL, and a reminder about the subdomain switch.
-- Once saved, Blanxer uses the site in SMS tracking links, the delivered email, flash-sale alerts, the product feed and the sitemap. Clearing it puts all of them back on the Blanxer domain.
+- **The first call saves nothing.** It shows the old and the new value and returns a `confirm_token`. Show the merchant the change; after their yes, call again with `{ dry_run: false, confirm_token }` only. If the link changed since the preview, the apply is refused; preview again.
+- Blanxer cleans the link to `https://<host>`: it must be `https`, with no path, query, port or login, and not an IP or `localhost`. A bare `mystore.com` becomes `https://mystore.com`. A `*.workers.dev` link is fine. The MCP refuses `*.blanxer.io` and `*.blanxer.com` addresses (those are the Blanxer-hosted site).
+- A save returns the product feed URL, the sitemap URL, and a reminder about the subdomain switch. Clearing returns only a confirmation (and a warning if the subdomain site is still hidden).
 
-This tool ships with the BlanxerAPI release of the Blanxer MCP. Until your MCP lists it, the merchant pastes the link in Blanxer → avatar menu → BlanxerAPI → Your website.
+Once saved, Blanxer uses the site in:
+
+- the tracking link it generates (dashboard copy, `get_tracking_link`);
+- the confirmation emails of orders created in the dashboard, as leads or through Sambad (orders placed on the site use the site's own `url`);
+- the delivered email;
+- flash-sale alerts: the alert links to the `url` the site sent with "Notify me", which is kept only when it is on the store's domains, the saved link included;
+- the product feed and the catalog sitemap.
+
+Whether SMS short links follow it is not yet verified. Clearing the link puts these back on the custom domain if the store has one, else the subdomain (the delivered email falls back to `<sub>.blanxer.com`).
+
+This tool ships with the BlanxerAPI release of the Blanxer MCP. Until your MCP lists it, the merchant pastes the link in the Blanxer dashboard → avatar menu → BlanxerAPI → Your website (rolling out).
 
 ## Confirm before bulk changes (rule 13)
 
@@ -93,6 +106,8 @@ The MCP's own confirmations still apply on top of this. Never invent product fac
   - `blanxer_update_navigation`, `blanxer_update_footer`
 
   The custom site's design, menus and footer live in its code.
+
+  **Exception: blog post bodies.** `blanxer_create_blog_post` makes an empty post; write its body with `blanxer_add_section` / `blanxer_update_section` using `{ post_id }`. That is content the site shows (the post's `sections`), so use them for blog posts.
 - Don't use the MCP from the site's code, and don't put an MCP token anywhere.
 - Don't change `store_visibility` unless the merchant asks (see [Deploy → Retiring the old subdomain site](https://developers.blanxer.com/deploy-cloudflare.md#retiring-the-old-subdomain-site)).
 - Don't put product photos in the site's repo; upload them to Blanxer.
