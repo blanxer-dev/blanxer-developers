@@ -17,7 +17,7 @@ Most shoppers in Nepal browse on mid-range phones over mobile data. Image weight
   - strip EXIF and location data;
   - use SVG for logos when available.
 - Never commit originals.
-- Load with `next/image`: the first big image gets `priority`, the rest load lazily with correct `sizes`.
+- Load with `next/image`: each page's main (LCP) image gets `preload`, the rest load lazily with correct `sizes`.
 - **Product photos go into Blanxer through the MCP, never into the site.**
 - No autoplay video backgrounds or GIF banners unless the merchant insists after hearing the speed cost.
 - Fonts go through `next/font`, at most 2 families.
@@ -40,7 +40,7 @@ Budget, enforced by the check command:
 - no file wider than **2560 px**;
 - no JPEG or PNG where WebP or AVIF fits (PNG stays fine for a logo with no SVG);
 - every image rendered through `next/image` with a width and height (or `fill` with `sizes`);
-- `priority` on the first big image of each page.
+- each page's main (LCP) image marked with `preload` (or `loading="eager"` + `fetchPriority="high"`); the check warns when no image is marked.
 
 ## Optimising a merchant's images
 
@@ -66,11 +66,11 @@ import Image from 'next/image';
 import hero from '@/public/images/hero.avif';
 
 export function Hero() {
-  return <Image src={hero} alt="New winter collection" priority sizes="100vw" placeholder="blur" />;
+  return <Image src={hero} alt="New winter collection" preload sizes="100vw" placeholder="blur" />;
 }
 ```
 
-- **One `priority` image per page**: the largest image above the fold (usually the LCP element). Everything else loads lazily, which is `next/image`'s default.
+- **One main image per page, marked with `preload`**: the largest image above the fold (usually the LCP element). Next.js 16 deprecates `priority`; use `preload`, or `loading="eager"` with `fetchPriority="high"`. Everything else loads lazily, which is `next/image`'s default.
 - Always give `sizes` for responsive images, or the browser downloads the widest file.
 - Write real `alt` text. Product images: the product name (and variant).
 - Keep the image config the starter ships with. It is set up for Cloudflare Workers.
@@ -93,7 +93,7 @@ import { blanxerImageLoader } from '@blanxer/storefront/next';
 />
 ```
 
-The Blanxer-hosted storefront uses `https://wsrv.nl/?w=<width>&url=<image>` for thumbnails today. The package's loader does the same by default (WebP output, quality 75). In the current package, `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` switches it: `wsrv` (default), `cloudflare` (Cloudflare Image Transformations on the site's own zone, `/cdn-cgi/image/...`; the merchant must turn Transformations on in Cloudflare) or `none`. The final default is confirmed in the pilot; the loader hides the choice, so site code doesn't change. Local files under `/` are passed through unchanged (they are already optimised).
+The Blanxer-hosted storefront uses `https://wsrv.nl/?w=<width>&url=<image>` for thumbnails today. The package's loader does the same by default (WebP output, quality 75). `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` switches it: `wsrv` (default), `cloudflare` (Cloudflare Image Transformations on the site's own zone, `/cdn-cgi/image/...`; the merchant must turn Transformations on in Cloudflare) or `none`. The loader hides the choice, so site code doesn't change. Local files and SVGs are passed through unchanged (they are already optimised).
 
 To use it for every `next/image`, set it once in `next.config.ts`. If the starter already sets an image loader, keep the starter's setting:
 
@@ -137,6 +137,6 @@ New or better product photos go **into Blanxer through the MCP** (`blanxer_uploa
 | A file is wider than 2560 px | It was committed unresized. Resize it. |
 | JPEG/PNG found | Convert to AVIF + WebP |
 | Image without width/height or `sizes` | Add them, or use `fill` + `sizes` |
-| No `priority` image / wrong one | Put `priority` on the LCP image only |
-| LCP over 2.5 s | Usually the hero: check its size, `priority`, and that nothing (a font, a client fetch, a carousel script) delays it |
+| No image marked as main (warning) / the wrong one | Put `preload` on the LCP image only |
+| LCP over 2.5 s | Usually the hero: check its size, `preload`, and that nothing (a font, a client fetch, a carousel script) delays it |
 | Lighthouse under 90 | Read the report's top items; most often images, unused JavaScript or a third-party script loaded too early |

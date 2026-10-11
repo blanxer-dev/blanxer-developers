@@ -23,19 +23,29 @@ Deploy to **Workers**, not Cloudflare Pages. Don't swap the adapter: Blanxer tes
 
 ## Configuration
 
-`BLANXER_STORE` (the subdomain) must be set for the deployed Worker as well as locally. It is not a secret; put it in `wrangler.jsonc`:
+The site reads its settings from `.env`. OpenNext copies `.env` into the Worker at build time, so the same file works locally and deployed. None of these is a secret.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `BLANXER_STORE` | Yes (`check` fails without it) | The store's subdomain, e.g. `mystore` |
+| `BLANXER_API` | No | API base, default `https://api.blanxer.com` (`https://api-dev.blanxer.com` for sandbox testing) |
+| `SITE_URL` | No | The site's public origin, for canonical links, `robots.txt` and the sitemap index. Default: the website link saved in Blanxer (`storefront_url`) |
+| `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` | No | Product photo resizing: `wsrv` (default), `cloudflare` or `none` |
+
+**Before the first deploy, rename the Worker** in `wrangler.jsonc`: set `name` to the merchant's site name, and the `WORKER_SELF_REFERENCE` service binding's `service` to the same value. The name is part of the `workers.dev` link.
 
 ```jsonc
 {
-  "name": "mystore",            // the Worker name, part of the workers.dev link
-  "vars": {
-    "BLANXER_STORE": "mystore"
-    // "BLANXER_API": "https://api-dev.blanxer.com"   // only for sandbox testing
-  }
+  "name": "mystore",
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "mystore" }]
 }
 ```
 
 Keep the rest of the starter's `wrangler.jsonc` as it is. No other configuration is needed: the public API needs no key, and nothing secret belongs in the Worker (rule 6).
+
+### Caching on the Worker
+
+The starter has no R2 or KV cache configured, so a new merchant can deploy without creating Cloudflare resources. Pages render on each request, and the package keeps API reads in memory for 60 seconds per Worker instance. For full ISR, create an R2 bucket and turn on the R2 incremental cache: the steps are commented in the starter's `open-next.config.ts` and `wrangler.jsonc`.
 
 ## Sign in to Cloudflare
 
@@ -85,9 +95,9 @@ The deploy ends with the live link: `https://<worker-name>.<account-subdomain>.w
 
 ## Link the site to Blanxer
 
-1. Save the link: `blanxer_set_storefront_url { url: "https://<the workers.dev link or the custom domain>" }` through the MCP, or the merchant pastes it in Blanxer → avatar menu → BlanxerAPI → Your website.
+1. Save the link: `blanxer_set_storefront_url { url: "https://<the workers.dev link or the custom domain>" }` through the MCP. That call is a preview with a `confirm_token`; after the merchant's yes, apply it with `{ dry_run: false, confirm_token }`. Or the merchant pastes it in the Blanxer dashboard → avatar menu → BlanxerAPI → Your website (rolling out).
 
-   Blanxer then uses it for SMS tracking links, the delivered email, flash-sale alerts, the product feed and the sitemap.
+   Blanxer then uses it for the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md#blanxersetstorefronturl) for the full list.
 2. Register the product feed `https://api.blanxer.com/public/product-feed/<store_id>.xml` with Meta Commerce Manager and/or Google Merchant Center.
 3. Verify the site in Google Search Console and submit `https://<site>/sitemap.xml`.
 

@@ -66,7 +66,7 @@ npm install
 ./node_modules/.bin/next dev
 ```
 
-`BLANXER_STORE` is the subdomain. `BLANXER_API` is optional and defaults to `https://api.blanxer.com`. Open `http://localhost:3000` and show the merchant the starter running with their real products before changing the design.
+`BLANXER_STORE` is the subdomain (required). Optional: `BLANXER_API` (default `https://api.blanxer.com`), `SITE_URL` (the site's public origin; default the link saved in Blanxer) and `NEXT_PUBLIC_BLANXER_IMAGE_LOADER` (`wsrv`, `cloudflare` or `none`). See [Deploy → Configuration](https://developers.blanxer.com/deploy-cloudflare.md#configuration). Open `http://localhost:3000` and show the merchant the starter running with their real products before changing the design.
 
 The starter's `npm run dev`, `npm run build` and `npm run deploy` scripts do the same as the direct commands on this page. The direct `./node_modules/.bin/...` form avoids surprises when the machine has another Node install on its path.
 
@@ -90,13 +90,13 @@ No `/account`, `/login` or `/p/[slug]`.
 npx blanxer-storefront check            # add --lighthouse http://localhost:3000 with the production build running
 ```
 
-It checks the routes, secrets, login code, that order and payment calls run in the browser, the image budget, and with `--lighthouse` the speed (mobile ≥ 90, LCP < 2.5 s on home, a product and checkout). Fix every failure before deploying, or tell the merchant why one can't be fixed.
+It checks the routes, secrets, login code, that order and payment calls run in the browser, the image budget (and warns when a page has no main image marked with `preload`), and with `--lighthouse <origin>` the speed (mobile ≥ 90, LCP < 2.5 s on home, a product and checkout; needs `next start` running). Fix every failure before deploying, or tell the merchant why one can't be fixed.
 
 ### 6. Test the checkout
 
 See [Testing](https://developers.blanxer.com/testing.md). On the merchant's real store, test orders use the phone number `0000000000`: the API validates the order and returns `{"success":true}` **without creating it**. The checkout then shows "Test order accepted" and stops. That tests the form, validation, delivery charges, COD per place and coupons.
 
-Because no order exists, the `0000000000` order can't open a gateway or a QR screen. Test the payment flows on the sandbox store (see [Testing → The sandbox store](https://developers.blanxer.com/testing.md#3-the-sandbox-store)), and check that `/payment/success`, `/payment/failed` and `/track/<id>` render.
+Because no order exists, the `0000000000` order can't open a gateway or a QR screen. Check that every payment method the store has on appears for a COD and a non-COD place, and that `/payment/success`, `/payment/failed` and `/track/<id>` render. The gateway and QR screens themselves are checked once, live, in step 12 (see [Testing → The live check](https://developers.blanxer.com/testing.md#4-the-live-check)).
 
 ### 7. Sign in to Cloudflare
 
@@ -104,7 +104,7 @@ Because no order exists, the `0000000000` order can't open a gateway or a QR scr
 npx wrangler login
 ```
 
-The merchant signs in to **their own** Cloudflare account in the browser. Check the Worker size first: 3 MiB (compressed) on the free plan. See [Deploy to Cloudflare](https://developers.blanxer.com/deploy-cloudflare.md).
+The merchant signs in to **their own** Cloudflare account in the browser. Before the first deploy, rename the Worker in `wrangler.jsonc` (`name` and the matching `WORKER_SELF_REFERENCE` service) to the merchant's site name. Check the Worker size: 3 MiB (compressed) on the free plan. See [Deploy to Cloudflare](https://developers.blanxer.com/deploy-cloudflare.md).
 
 ### 8. Deploy
 
@@ -116,7 +116,7 @@ Print the live `*.workers.dev` link and open it.
 
 ### 9. Link the site to Blanxer
 
-Call `blanxer_set_storefront_url { url }` (or the merchant pastes the link in Blanxer → avatar menu → **BlanxerAPI** → Your website). Blanxer then uses the site in SMS tracking links, the delivered email, flash-sale alerts, the product feed and the sitemap. Register the feed with Meta and submit the sitemap to Google Search Console. See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
+Call `blanxer_set_storefront_url { url }`. It returns a preview and a `confirm_token`; show the merchant, and after their yes call `{ dry_run: false, confirm_token }`. (Or the merchant pastes the link in the Blanxer dashboard → avatar menu → **BlanxerAPI** → Your website, rolling out.) Blanxer then uses the site in the tracking link it generates, the delivered email, flash-sale alerts, the product feed and the sitemap. Register the feed with Meta and submit the sitemap to Google Search Console. See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
 
 ### 10. Custom domain (optional)
 
@@ -128,7 +128,7 @@ Only after step 9. Every page on `<sub>.blanxer.io` then shows a placeholder, **
 
 ### 12. Live check
 
-On the live site open home, a product, checkout, the three payment/tracking pages and a real `/track/<id>`. Place one real COD order and have the merchant cancel it in the dashboard. Hand over a README that says how to edit and redeploy.
+On the live site open home, a product, checkout, the three payment/tracking pages and a real `/track/<id>`. With the merchant's OK, place one real COD order and have the merchant cancel it in the dashboard. For one online method, start a real order, open the gateway or QR screen and stop without paying (closing the QR releases the hold), then cancel it in the dashboard. Hand over a README that says how to edit and redeploy.
 
 ## Next
 

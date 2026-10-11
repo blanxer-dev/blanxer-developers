@@ -19,7 +19,7 @@ These rules apply to every BlanxerAPI website. Read them before writing any code
       - strip EXIF and location data;
       - use SVG for logos when available.
     - Never commit originals.
-    - Load with `next/image`: the first big image gets `priority`, the rest load lazily with correct `sizes`.
+    - Load with `next/image`: each page's main (LCP) image gets `preload`, the rest load lazily with correct `sizes`.
     - **Product photos go into Blanxer through the MCP, never into the site.**
     - No autoplay video backgrounds or GIF banners unless the merchant insists after hearing the speed cost.
     - Fonts go through `next/font`, at most 2 families.
