@@ -79,6 +79,22 @@ Aimed at people in Nepal searching to build an ecommerce website with Claude, Ch
 3. Add a line to `public/llms.txt`.
 4. Run the build. If you renamed a page, add the old path to `public/_redirects`.
 
+## Deploy (live since 2026-10-11)
+
+- **Cloudflare:** the classic Pages project `blanxer-developers` (direct upload), in the account prashant.phuyal.pp@gmail.com, next to `blanxerenterprise`.
+- **Addresses:** `https://blanxer-developers.pages.dev`, with custom domain `developers.blanxer.com` attached.
+
+**To deploy by hand:**
+
+```bash
+node scripts/content.mjs && ./node_modules/.bin/next build
+npx wrangler pages deploy out --project-name blanxer-developers --branch main
+```
+
+**DNS:** blanxer.com's zone is in a different Cloudflare account. It needs a proxied CNAME `developers` → `blanxer-developers.pages.dev`; it overrides the store wildcard.
+
+To deploy on every merge instead, connect the repo in the Pages project settings, using the settings below.
+
 ## Cloudflare Pages settings
 
 | Setting | Value |
