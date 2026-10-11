@@ -223,6 +223,13 @@ export default function Page() {
 
 Canonical URLs are only emitted when the origin is known. What they produce: [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
 
+### Site tags (0.1.1+)
+
+`storeMetadata` adds two tags to every page: `<meta name="generator" content="Blanxer Storefront">` and `<meta name="blanxer-store" content="<store id>">`.
+
+- **What they're for:** Blanxer's nightly check reads them to confirm that the website link saved for a store is that store's own site. A site that answers but lacks them stays "linked", not "live", in Blanxer's records.
+- **Keep them:** keep `storeMetadata` in the root layout.
+
 ## `@blanxer/storefront/next`
 
 | Export | Use |
