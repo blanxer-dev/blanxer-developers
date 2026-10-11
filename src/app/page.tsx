@@ -76,10 +76,10 @@ export default function Home() {
               </div>
 
               <div id="prompt" className="mt-4 grid scroll-mt-24 gap-4 md:grid-cols-2">
-                <div className={`${glass} p-4 sm:p-5`}>
+                <div className={`${glass} min-w-0 p-4 sm:p-5`}>
                   <AgentDemo />
                 </div>
-                <div className={`${glass} flex flex-col justify-center gap-4 p-4 sm:p-6`}>
+                <div className={`${glass} order-first flex min-w-0 flex-col justify-center gap-4 p-4 sm:p-6 md:order-none`}>
                   <PromptBox compact />
                   <p className="text-center text-sm text-white/90">Paste this into your AI agent.</p>
                 </div>

@@ -42,7 +42,7 @@ export function AgentDemo() {
         </span>
         <span>your agent</span>
       </div>
-      <ol className="flex-1 space-y-1.5 px-4 py-4" aria-label="What your agent does">
+      <ol className="min-h-[15rem] flex-1 space-y-1.5 px-4 py-4" aria-label="What your agent does">
         {lines.map((l, i) => (
           <li
             key={l.text}
@@ -51,7 +51,7 @@ export function AgentDemo() {
             <span className={`shrink-0 ${l.kind === "you" ? "text-[#b78cff]" : l.kind === "done" ? "text-[#4ade80]" : l.kind === "ask" ? "text-[#facc15]" : "text-[#8b8b95]"}`}>
               {l.kind === "you" ? ">" : l.kind === "done" ? "✓" : l.kind === "ask" ? "?" : "●"}
             </span>
-            <span className={l.kind === "done" ? "text-white" : l.kind === "you" ? "text-white" : ""}>{l.text}</span>
+            <span className={`min-w-0 break-words ${l.kind === "done" || l.kind === "you" ? "text-white" : ""}`}>{l.text}</span>
           </li>
         ))}
       </ol>
