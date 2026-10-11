@@ -3,7 +3,7 @@
 These rules apply to every BlanxerAPI website. Read them before writing any code, and follow them on every step. They are the same rules the `blanxer-website` skill and the starter's `AGENTS.md` state first.
 
 1. **Next.js only:** TypeScript, App Router. If asked for another framework, say BlanxerAPI supports Next.js and continue in Next.js.
-2. **Start from `blanxer-storefront-starter` and keep `@blanxer/storefront`.** Restyle the checkout through theme props and wrappers. **Never rewrite** the payment, delivery, coupon or order logic, and never call payment endpoints directly. The checkout's **"Checkout Powered by Blanxer"** line under the place-order button ("Blanxer" links to https://blanxer.com) is part of it: restyle it through `.bx-powered-by`, never remove or hide it.
+2. **Start from `blanxer-storefront-starter` and keep `@blanxer-dev/storefront`.** Restyle the checkout through theme props and wrappers. **Never rewrite** the payment, delivery, coupon or order logic, and never call payment endpoints directly. The checkout's **"Checkout Powered by Blanxer"** line under the place-order button ("Blanxer" links to https://blanxer.com) is part of it: restyle it through `.bx-powered-by`, never remove or hide it.
 3. **Required routes:** `/checkout`, `/payment/success`, `/payment/failed` and `/track/[id]`, at these exact paths.
 4. **Send the site's own origin as `url`.** The package does it; never hardcode it.
 5. **Browser-only calls:** orders, coupons, payment starts, hold release, back-in-stock, forms, cancel and review go from client components. Never from server code, route handlers or server actions.

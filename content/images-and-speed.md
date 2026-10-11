@@ -81,7 +81,7 @@ Product photos live in Blanxer. `image_urls` and variant `image_url` are absolut
 
 ```tsx
 import Image from 'next/image';
-import { blanxerImageLoader } from '@blanxer/storefront/next';
+import { blanxerImageLoader } from '@blanxer-dev/storefront/next';
 
 <Image
   loader={blanxerImageLoader}
@@ -103,7 +103,7 @@ const nextConfig = { images: { loader: 'custom', loaderFile: './src/lib/image-lo
 export default nextConfig;
 
 // src/lib/image-loader.ts
-export { default } from '@blanxer/storefront/image-loader';
+export { default } from '@blanxer-dev/storefront/image-loader';
 ```
 
 New or better product photos go **into Blanxer through the MCP** (`blanxer_upload_product_image`, `blanxer_request_image_upload`), so the dashboard, POS, app, feed and site all get them. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md).
@@ -123,7 +123,7 @@ New or better product photos go **into Blanxer through the MCP** (`blanxer_uploa
 
 ## Other speed rules
 
-- Read store and catalog data in **server components** (`@blanxer/storefront/server`), not with client-side fetches above the fold.
+- Read store and catalog data in **server components** (`@blanxer-dev/storefront/server`), not with client-side fetches above the fold.
 - Keep client components small: cart, variant picker, checkout. Don't make whole pages client components.
 - Load third-party tags (GA, GTM, Pixel, Clarity, chat widgets) with `next/script` `strategy="afterInteractive"` or `lazyOnload`.
 - Avoid heavy UI and animation libraries for things CSS can do. They also count toward the Worker size limit (see [Deploy](https://developers.blanxer.com/deploy-cloudflare.md#worker-size)).

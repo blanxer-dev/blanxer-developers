@@ -10,7 +10,7 @@ This page is the procedure. Each step links to the guide with the details.
 
 ## Before you start
 
-Read [the 13 hard rules](https://developers.blanxer.com/rules.md). In short: Next.js only, start from the starter, keep `@blanxer/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
+Read [the 13 hard rules](https://developers.blanxer.com/rules.md). In short: Next.js only, start from the starter, keep `@blanxer-dev/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
 
 Install the agent tools:
 

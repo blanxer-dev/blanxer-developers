@@ -20,7 +20,7 @@ Merchants start with one line to their AI agent:
 
 - Claude Code skill: `/plugin marketplace add blanxer-dev/blanxer-agent-skills` then `/plugin install blanxer-website@blanxer`
 - Blanxer MCP: `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp`
-- The site: start from `blanxer-dev/blanxer-storefront-starter`, which uses the `@blanxer/storefront` package.
+- The site: start from `blanxer-dev/blanxer-storefront-starter`, which uses the `@blanxer-dev/storefront` package.
 
 ## Guides
 

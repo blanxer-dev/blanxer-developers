@@ -1,6 +1,6 @@
 # BlanxerAPI
 
-> BlanxerAPI lets an AI agent or developer build a custom Next.js website for a Blanxer store (Blanxer is a Nepali e-commerce platform) and deploy it to the merchant's own Cloudflare account. Blanxer stays the admin: products, stock, orders, payments, delivery and SEO data live in Blanxer. The site reads the public API at https://api.blanxer.com (no key, CORS *) and uses the @blanxer/storefront package for the checkout. The agent changes store data only through the Blanxer MCP (OAuth); the site holds no key.
+> BlanxerAPI lets an AI agent or developer build a custom Next.js website for a Blanxer store (Blanxer is a Nepali e-commerce platform) and deploy it to the merchant's own Cloudflare account. Blanxer stays the admin: products, stock, orders, payments, delivery and SEO data live in Blanxer. The site reads the public API at https://api.blanxer.com (no key, CORS *) and uses the @blanxer-dev/storefront package for the checkout. The agent changes store data only through the Blanxer MCP (OAuth); the site holds no key.
 
 The merchant's prompt usually is: "Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is <subdomain>."
 
@@ -9,7 +9,7 @@ Start with https://developers.blanxer.com/quickstart.md and follow its steps in 
 Hard rules (full text: https://developers.blanxer.com/rules.md):
 
 1. Next.js only: TypeScript, App Router.
-2. Start from blanxer-storefront-starter and keep @blanxer/storefront. Restyle the checkout; never rewrite payment, delivery, coupon or order logic, never call payment endpoints directly. The checkout always shows "Checkout Powered by Blanxer" ("Blanxer" links to https://blanxer.com) under the place-order button: restyle it via `.bx-powered-by`, never remove or hide it.
+2. Start from blanxer-storefront-starter and keep @blanxer-dev/storefront. Restyle the checkout; never rewrite payment, delivery, coupon or order logic, never call payment endpoints directly. The checkout always shows "Checkout Powered by Blanxer" ("Blanxer" links to https://blanxer.com) under the place-order button: restyle it via `.bx-powered-by`, never remove or hide it.
 3. Required routes at these exact paths: /checkout, /payment/success, /payment/failed, /track/[id].
 4. Send the site's own origin as `url`; never hardcode it.
 5. Orders, coupons, payment starts, hold release, back-in-stock, forms, cancel and review run in the browser only.
@@ -37,7 +37,7 @@ Install:
 - [Forms and extras](https://developers.blanxer.com/forms-and-extras.md): custom forms, back-in-stock alerts, order cancel and review, blog
 - [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md): server-built sitemap and feed, sitemap index, robots, metadata, JSON-LD, Search Console, GA/GTM, Meta Pixel and CAPI
 - [Images and speed](https://developers.blanxer.com/images-and-speed.md): rule 11 in full, image sizes per slot, product image loader, fonts, Lighthouse ≥ 90 and LCP < 2.5 s
-- [Package](https://developers.blanxer.com/package.md): the @blanxer/storefront entry points, theming, the "Checkout Powered by Blanxer" line, and the check/images CLI (see the package README for the released API)
+- [Package](https://developers.blanxer.com/package.md): the @blanxer-dev/storefront entry points, theming, the "Checkout Powered by Blanxer" line, and the check/images CLI (see the package README for the released API)
 
 ## Store data and shipping
 

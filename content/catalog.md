@@ -1,6 +1,6 @@
 # Catalog
 
-Products, variants, stock, categories, brands, search, sale and flash sales. All catalog reads are public `GET`s on `https://api.blanxer.com` with no key. In the site, read them on the server through `@blanxer/storefront/server` (60-second cache, normal `User-Agent`). Never put sample products or placeholder prices in the site (rule 8).
+Products, variants, stock, categories, brands, search, sale and flash sales. All catalog reads are public `GET`s on `https://api.blanxer.com` with no key. In the site, read them on the server through `@blanxer-dev/storefront/server` (60-second cache, normal `User-Agent`). Never put sample products or placeholder prices in the site (rule 8).
 
 ## Endpoints
 
@@ -139,7 +139,7 @@ Every list endpoint (all products, page, category, search, sale, brand products,
 >
 > ```ts
 > import { notFound } from 'next/navigation';
-> const product = await getProduct(params.slug); // @blanxer/storefront/server
+> const product = await getProduct(params.slug); // @blanxer-dev/storefront/server
 > if (!product || product.status !== 'Active' || product.channel === 3) notFound();
 > ```
 >

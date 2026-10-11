@@ -13,7 +13,7 @@ curl -s "https://api.blanxer.com/store/check_domain?domain=mystore"
 - An unknown domain: HTTP 400 `{"message":"Domain not in use"}`. A missing `domain`: HTTP 400 `{"fields":{"domain":"Domain is required"}}`.
 - The API caches the answer for 1 hour and clears it when the merchant changes store settings. The cache is per API process, so on a multi-process deployment an old answer can still be served for up to 1 hour. The package adds a 60-second cache on top.
 
-In the site: `getStore()` and `getStoreId()` from `@blanxer/storefront/server` read `BLANXER_STORE` and make this call. **`_id` is the `store_id` every other endpoint needs.**
+In the site: `getStore()` and `getStoreId()` from `@blanxer-dev/storefront/server` read `BLANXER_STORE` and make this call. **`_id` is the `store_id` every other endpoint needs.**
 
 ## What it returns
 
@@ -101,7 +101,7 @@ Map the primary colour to a CSS variable (the name below is an example) and pass
 
 ```tsx
 // app/layout.tsx
-import { getStore } from '@blanxer/storefront/server';
+import { getStore } from '@blanxer-dev/storefront/server';
 
 const NAMED: Record<string, string> = { violet: '#7950f2', blue: '#228be6' /* ...from the table */ };
 

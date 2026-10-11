@@ -1,11 +1,11 @@
-# The @blanxer/storefront package
+# The @blanxer-dev/storefront package
 
 > This page summarises the package's API: entry points, functions, components and the CLI. The package README and its TypeScript types have every argument and return type. The package is at version 0.1.0 and not yet published to npm.
 
-`@blanxer/storefront` is the typed client, checkout and tooling every BlanxerAPI site uses. The starter already depends on it. Keep it (rule 2): the checkout, delivery, coupon, payment and tracking behaviour in it is copied from Blanxer's own storefront and covered by tests, and it is updated when Blanxer's checkout changes.
+`@blanxer-dev/storefront` is the typed client, checkout and tooling every BlanxerAPI site uses. The starter already depends on it. Keep it (rule 2): the checkout, delivery, coupon, payment and tracking behaviour in it is copied from Blanxer's own storefront and covered by tests, and it is updated when Blanxer's checkout changes.
 
 ```bash
-npm install @blanxer/storefront
+npm install @blanxer-dev/storefront
 ```
 
 Peer dependencies: `next` ≥ 16 (App Router), `react` and `react-dom` ≥ 19. Node ≥ 20.9. ESM with TypeScript types.
@@ -25,17 +25,17 @@ No key, token or secret is ever needed (rule 6).
 
 | Import | Runs on | For |
 |---|---|---|
-| `@blanxer/storefront/server` | Server only | Reading store and catalog data |
-| `@blanxer/storefront/client` | Browser only | Orders, coupons, payments, holds, tracking, forms, events |
-| `@blanxer/storefront/react` | Browser (client components) | Provider, cart, product, checkout, the three required pages, forms |
-| `@blanxer/storefront/seo` | Server | Metadata and JSON-LD |
-| `@blanxer/storefront/next` | Server | Route handlers and the image loader |
-| `@blanxer/storefront/core` | Both | The pure logic: delivery, COD rule, coupons, payment method list, order payload, custom fields, validation, variants, formatting, types |
-| `@blanxer/storefront/image-loader` | — | The default image loader as a default export, for `loaderFile` |
-| `@blanxer/storefront/styles.css` | — | Default styles for the `bx-*` classes (optional) |
+| `@blanxer-dev/storefront/server` | Server only | Reading store and catalog data |
+| `@blanxer-dev/storefront/client` | Browser only | Orders, coupons, payments, holds, tracking, forms, events |
+| `@blanxer-dev/storefront/react` | Browser (client components) | Provider, cart, product, checkout, the three required pages, forms |
+| `@blanxer-dev/storefront/seo` | Server | Metadata and JSON-LD |
+| `@blanxer-dev/storefront/next` | Server | Route handlers and the image loader |
+| `@blanxer-dev/storefront/core` | Both | The pure logic: delivery, COD rule, coupons, payment method list, order payload, custom fields, validation, variants, formatting, types |
+| `@blanxer-dev/storefront/image-loader` | — | The default image loader as a default export, for `loaderFile` |
+| `@blanxer-dev/storefront/styles.css` | — | Default styles for the `bx-*` classes (optional) |
 | `blanxer-storefront` (CLI) | Your terminal | `check` and `images` |
 
-## `@blanxer/storefront/server`
+## `@blanxer-dev/storefront/server`
 
 Server-only data functions. Each uses `fetch` with `next: { revalidate: 60 }` and a normal browser `User-Agent`. Responses are also kept in memory per server process / Worker instance for the same 60 seconds, so a Worker without an incremental cache still reads the catalog about once a minute, not once per page view. `opts` is `{ revalidate?: number | false }`.
 
@@ -64,7 +64,7 @@ Pass `getClientStore()` (or `toClientStore(store)`), not the raw `getStore()` re
 ```tsx
 // app/product/[slug]/page.tsx
 import { notFound } from 'next/navigation';
-import { getProduct } from '@blanxer/storefront/server';
+import { getProduct } from '@blanxer-dev/storefront/server';
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -76,7 +76,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
 See [Catalog](https://developers.blanxer.com/catalog.md) for what the product endpoints return.
 
-## `@blanxer/storefront/client`
+## `@blanxer-dev/storefront/client`
 
 Browser calls. This entry point imports `client-only`, so importing it from a Server Component, route handler or server action fails the build (rule 5).
 
@@ -99,7 +99,7 @@ Also: `getDeliveryCharges`, `getFlashSaleForProduct`, `notifyFlashSale`, `upload
 
 `url` on orders and payments is always the site's own origin (`window.location.origin`). You rarely call these yourself: the React components do.
 
-## `@blanxer/storefront/react`
+## `@blanxer-dev/storefront/react`
 
 Client components and hooks. **Unstyled by default**: each element has a `bx-*` class, and the styles read CSS variables. The behaviour is fixed; style it, don't fork it.
 
@@ -142,9 +142,9 @@ Two more variables have no `theme` key: `--bx-surface` (card and panel backgroun
 
 ```tsx
 // app/layout.tsx
-import { getClientStore, apiBase } from '@blanxer/storefront/server';
-import { BlanxerProvider, Pixel } from '@blanxer/storefront/react';
-import '@blanxer/storefront/styles.css';
+import { getClientStore, apiBase } from '@blanxer-dev/storefront/server';
+import { BlanxerProvider, Pixel } from '@blanxer-dev/storefront/react';
+import '@blanxer-dev/storefront/styles.css';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const store = await getClientStore();
@@ -163,9 +163,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 ```tsx
 // app/checkout/page.tsx
-import { getDeliveryCharges } from '@blanxer/storefront/server';
-import { Checkout } from '@blanxer/storefront/react';
-import { noIndexMetadata } from '@blanxer/storefront/seo';
+import { getDeliveryCharges } from '@blanxer-dev/storefront/server';
+import { Checkout } from '@blanxer-dev/storefront/react';
+import { noIndexMetadata } from '@blanxer-dev/storefront/seo';
 
 export const metadata = noIndexMetadata('Checkout');
 
@@ -179,8 +179,8 @@ export default async function CheckoutPage() {
 
 ```tsx
 // app/payment/success/page.tsx  (likewise PaymentFailed and OrderTracking)
-import { PaymentSuccess } from '@blanxer/storefront/react';
-import { noIndexMetadata } from '@blanxer/storefront/seo';
+import { PaymentSuccess } from '@blanxer-dev/storefront/react';
+import { noIndexMetadata } from '@blanxer-dev/storefront/seo';
 export const metadata = noIndexMetadata('Payment');
 export default function Page() {
   return <PaymentSuccess />;
@@ -207,7 +207,7 @@ export default function Page() {
 - Payment methods are shown by name; logos are opt-in through `paymentMethodIcons`.
 - The package re-selects a payment method that disappears, re-checks the coupon when the cart total changes, and shows per-method payment-start errors. See [Checkout](https://developers.blanxer.com/checkout.md).
 
-## `@blanxer/storefront/seo`
+## `@blanxer-dev/storefront/seo`
 
 | Export | Returns |
 |---|---|
@@ -230,7 +230,7 @@ Canonical URLs are only emitted when the origin is known. What they produce: [SE
 - **What they're for:** Blanxer's nightly check reads them to confirm that the website link saved for a store is that store's own site. A site that answers but lacks them stays "linked", not "live", in Blanxer's records.
 - **Keep them:** keep `storeMetadata` in the root layout.
 
-## `@blanxer/storefront/next`
+## `@blanxer-dev/storefront/next`
 
 | Export | Use |
 |---|---|
@@ -254,7 +254,7 @@ Run before every deploy. It prints a PASS/FAIL table and fails when:
 - a contract route is missing: `/`, `/products`, `/product/[slug]`, `/collections/[slug]`, `/brand/[slug]`, `/brands`, `/search`, `/sale`, `/cart`, `/checkout`, `/payment/success`, `/payment/failed`, `/track/[id]`, `/forms/[slug]`, `/blogs`, `/blog/[slug]`, `/sitemap.xml`, `/sitemap-catalog.xml`, `/robots.txt`; or `/checkout` doesn't render the package's `<Checkout>`;
 - there are account, login, wishlist, rewards or `/p/` pages, or calls to `/customer/auth`, `/customer/account`, wishlist or rewards;
 - a secret is in the code, env files, `wrangler` config or the build output (`sk_` keys, gateway keys, plugin tokens, passwords, JWTs);
-- `@blanxer/storefront/client` is imported by server files, or the code calls payment, coupon or hold endpoints directly;
+- `@blanxer-dev/storefront/client` is imported by server files, or the code calls payment, coupon or hold endpoints directly;
 - the image budget is broken: see [Images and speed](https://developers.blanxer.com/images-and-speed.md#size-per-slot). It also warns when no image on a page is marked as the main (LCP) image;
 - with `--lighthouse <origin>` (the production build running with `next start`): Lighthouse mobile is under 90 or LCP over 2.5 s on the home page, one product page and `/checkout`. It runs `npx --yes lighthouse` and needs Chrome.
 

@@ -1,6 +1,6 @@
 # Checkout
 
-> **Use `@blanxer/storefront`'s `Checkout` component. This page documents what it does.** Restyle it with theme props, CSS variables and wrappers (rule 2). Don't rewrite the payment, delivery, coupon or order logic, and don't call payment endpoints yourself. You need this page to theme the checkout safely, to debug it, and to explain it to the merchant.
+> **Use `@blanxer-dev/storefront`'s `Checkout` component. This page documents what it does.** Restyle it with theme props, CSS variables and wrappers (rule 2). Don't rewrite the payment, delivery, coupon or order logic, and don't call payment endpoints yourself. You need this page to theme the checkout safely, to debug it, and to explain it to the merchant.
 
 The checkout behaves like the Blanxer-hosted storefront's checkout (storefront `main` at `cabd695`): the same fields, delivery places and charges, coupons, payment methods, stock holds, flash-sale limits and tracking. Where the package differs from the hosted storefront, this page says so. The hosted storefront also has a few store-specific checkout variants; the package doesn't port them.
 

@@ -59,19 +59,19 @@ Google wants a sitemap on the same host as the pages it lists. That's why the si
 
 ```ts
 // app/sitemap-catalog.xml/route.ts
-import { catalogSitemapRoute } from '@blanxer/storefront/next';
+import { catalogSitemapRoute } from '@blanxer-dev/storefront/next';
 export const GET = catalogSitemapRoute(); // fetches /public/sitemap/<store_id>.xml
 ```
 
 ```ts
 // app/sitemap.xml/route.ts  (don't hand-write the index)
-import { sitemapIndexRoute } from '@blanxer/storefront/next';
+import { sitemapIndexRoute } from '@blanxer-dev/storefront/next';
 export const GET = sitemapIndexRoute({ extra: ['/sitemap-pages.xml'] }); // leave out `extra` until you add that file
 ```
 
 ```ts
 // app/robots.txt/route.ts
-import { robotsRoute } from '@blanxer/storefront/next';
+import { robotsRoute } from '@blanxer-dev/storefront/next';
 export const GET = robotsRoute();
 ```
 
