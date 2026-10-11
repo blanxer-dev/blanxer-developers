@@ -42,6 +42,15 @@ const couriers: { name: string; logo: string; w: number; h?: number }[] = [
   { name: "Expo Express", logo: "/ship/expo_express.webp", w: 516 },
 ];
 
+/** Built-in marketing tools. Icons are the dashboard's plugin icons; Flash Sale has none, so it gets one here. */
+const marketing: { name: string; icon?: string; logo?: string; w?: number }[] = [
+  { name: "Flash Sale" },
+  { name: "12.12 Sale Campaigns", icon: "/tools/offer.svg" },
+  { name: "Bulk SMS for offers", icon: "/tools/sms.svg" },
+  { name: "Customer retention", icon: "/tools/retention.svg" },
+  { name: "Samparka loyalty", logo: "/tools/samparka.webp", w: 483 },
+];
+
 const ld = {
   "@context": "https://schema.org",
   "@graph": [
@@ -210,6 +219,37 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+          </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto]">
+            <div className="rounded-2xl border border-border bg-surface p-6 sm:p-7">
+              <p className="font-semibold">Marketing tools</p>
+              <ul className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-6">
+                {marketing.map((m) => (
+                  <li key={m.name} className="flex h-8 items-center gap-2.5 text-sm font-medium text-fg" title={m.name}>
+                    {m.logo ? (
+                      <Image src={m.logo} alt={m.name} width={m.w ?? 96} height={96} className="h-6 w-auto object-contain" />
+                    ) : (
+                      <>
+                        {m.icon ? (
+                          <Image src={m.icon} alt="" width={32} height={32} className="h-7 w-7 object-contain" />
+                        ) : (
+                          <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7" fill="#f59e0b">
+                            <path d="M13.2 2.5 4.8 13.3c-.3.4 0 1 .5 1H11l-1.2 7.1c-.1.6.7.9 1 .4l8.4-10.8c.3-.4 0-1-.5-1H13l1.2-7.1c.1-.6-.7-.9-1-.4Z" />
+                          </svg>
+                        )}
+                        {m.name}
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-6 sm:p-7">
+              <p className="font-semibold">Accounting</p>
+              <div className="mt-6 flex h-8 items-center" title="Tigg Accounting">
+                <Image src="/tools/tigg.svg" alt="Tigg Accounting" width={95} height={36} className="h-8 w-auto" />
+              </div>
+            </div>
           </div>
         </Section>
 
