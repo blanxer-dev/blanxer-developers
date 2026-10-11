@@ -1,0 +1,22 @@
+{
+  "name": "blanxer-developers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "developers.blanxer.com: BlanxerAPI docs, llms.txt and OpenAPI for custom Blanxer store websites",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blanxer-dev/blanxer-developers.git"
+  },
+  "homepage": "https://developers.blanxer.com",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "marked": "^18.1.0"
+  }
+}

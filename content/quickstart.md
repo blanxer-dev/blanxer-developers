@@ -1,0 +1,136 @@
+# Quickstart
+
+BlanxerAPI lets you build a custom Next.js website for a Blanxer store and deploy it to the merchant's own Cloudflare account. Blanxer stays the admin: products, stock, orders, payments, delivery and SEO data live in Blanxer. The website is only the front end.
+
+The merchant usually starts with one line to an AI agent:
+
+> Build my Blanxer store website in Next.js and deploy it to my Cloudflare account. Follow https://developers.blanxer.com/llms.txt My store is `<subdomain>`.
+
+This page is the procedure. Each step links to the guide with the details.
+
+## Before you start
+
+Read [the 13 hard rules](https://developers.blanxer.com/rules.md). In short: Next.js only, start from the starter, keep `@blanxer/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
+
+Install the agent tools:
+
+- **Claude Code skill:** `/plugin marketplace add blanxer-dev/blanxer-agent-skills` then `/plugin install blanxer-website@blanxer`
+- **Blanxer MCP:** `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp` (the merchant signs in to Blanxer in the browser)
+- **Cursor, Codex, claude.ai:** add `https://mcp.blanxer.com/mcp` as a remote MCP server. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md). The starter's `AGENTS.md` holds the same procedure as the skill.
+
+## Three channels, three jobs
+
+| Channel | Used by | For | Auth |
+|---|---|---|---|
+| Public API, `https://api.blanxer.com` | The site (server and browser) | Read store, theme, catalog, delivery table, coupons. Place orders, start payments, track orders. | None. CORS `*`. |
+| Blanxer MCP, `https://mcp.blanxer.com/mcp` | You, the agent, in chat | Change store data: SEO text, products, photos, categories, brands, coupons, delivery, the site link | OAuth. The merchant signs in. |
+| Blanxer-served XML, `https://api.blanxer.com/public/...xml` | Google and Meta | Product feed and catalog sitemap | None |
+
+The site never holds a key and never talks to the MCP.
+
+## The steps
+
+Confirm each step with the merchant before moving on.
+
+### 1. Find the store and connect
+
+Look the store up by subdomain (or custom domain):
+
+```bash
+curl -s "https://api.blanxer.com/store/check_domain?domain=mystore"
+```
+
+You get the store config, including `_id` (the store id every other call needs), `name`, `plan`, `addons`, `checkout`, `customization` and `categories`. An unknown domain returns HTTP 400 `{"message":"Domain not in use"}`. Field by field: [Store and theme](https://developers.blanxer.com/store-and-theme.md).
+
+Show the merchant:
+
+- the store name and plan;
+- the product count (`GET /product/public/<store_id>` returns all active products);
+- the payment methods the checkout will offer (see [Checkout → Payment methods](https://developers.blanxer.com/checkout.md#payment-methods));
+- **Free plan** (`plan` not one of `basic`, `premium`, `plus`, `platinum`): the checkout is Cash on Delivery only;
+- **Store with customer login turned on** (`customer_program.enabled`): the custom site still uses guest checkout. BlanxerAPI has no login.
+
+Then connect the Blanxer MCP, have the merchant sign in, and run `blanxer_audit_seo`. Also check the catalog for products with no photo, no price, no category or no SEO text. Show the gaps.
+
+### 2. Design brief
+
+Ask for reference sites, the look, the pages and the tone. Use the store's logo, colours and font as defaults (`customization.brand_logo`, `customization.theme`, `customization.font`).
+
+### 3. Scaffold from the starter
+
+```bash
+npx degit blanxer-dev/blanxer-storefront-starter my-store
+cd my-store
+cp .env.example .env    # set BLANXER_STORE=<subdomain>
+npm install
+./node_modules/.bin/next dev
+```
+
+`BLANXER_STORE` is the subdomain. `BLANXER_API` is optional and defaults to `https://api.blanxer.com`. Open `http://localhost:3000` and show the merchant the starter running with their real products before changing the design.
+
+The starter's `npm run dev`, `npm run build` and `npm run deploy` scripts do the same as the direct commands on this page. The direct `./node_modules/.bin/...` form avoids surprises when the machine has another Node install on its path.
+
+### 4. Build
+
+- Build pages with the package's data functions and components. See [Catalog](https://developers.blanxer.com/catalog.md) and [Package](https://developers.blanxer.com/package.md).
+- Theme the checkout; don't rewrite it. See [Checkout](https://developers.blanxer.com/checkout.md).
+- Optimise every image (rule 11) and show a before/after size table. See [Images and speed](https://developers.blanxer.com/images-and-speed.md).
+- Fix store data through the MCP: SEO text, categories and brands for the menus, product photos, launch coupons. Confirm bulk changes first (rule 13).
+
+Routes every site has:
+
+`/` · `/products` · `/product/[slug]` · `/collections/[slug]` (including `new-arrivals`) · `/brand/[slug]` · `/brands` · `/search?q=` · `/sale` · `/cart` · `/checkout` · **`/payment/success`** · **`/payment/failed`** · **`/track/[id]`** · `/forms/[slug]` · `/blogs` (and `?category=`) · `/blog/[slug]` · `/sitemap.xml` (index) · `/sitemap-catalog.xml` · `/robots.txt`
+
+No `/account`, `/login` or `/p/[slug]`.
+
+### 5. Check
+
+```bash
+./node_modules/.bin/next build
+npx blanxer-storefront check            # add --lighthouse http://localhost:3000 with the production build running
+```
+
+It checks the routes, secrets, login code, that order and payment calls run in the browser, the image budget, and with `--lighthouse` the speed (mobile ≥ 90, LCP < 2.5 s on home, a product and checkout). Fix every failure before deploying, or tell the merchant why one can't be fixed.
+
+### 6. Test the checkout
+
+See [Testing](https://developers.blanxer.com/testing.md). On the merchant's real store, test orders use the phone number `0000000000`: the API validates the order and returns `{"success":true}` **without creating it**. The checkout then shows "Test order accepted" and stops. That tests the form, validation, delivery charges, COD per place and coupons.
+
+Because no order exists, the `0000000000` order can't open a gateway or a QR screen. Test the payment flows on the sandbox store (see [Testing → The sandbox store](https://developers.blanxer.com/testing.md#3-the-sandbox-store)), and check that `/payment/success`, `/payment/failed` and `/track/<id>` render.
+
+### 7. Sign in to Cloudflare
+
+```bash
+npx wrangler login
+```
+
+The merchant signs in to **their own** Cloudflare account in the browser. Check the Worker size first: 3 MiB (compressed) on the free plan. See [Deploy to Cloudflare](https://developers.blanxer.com/deploy-cloudflare.md).
+
+### 8. Deploy
+
+```bash
+./node_modules/.bin/opennextjs-cloudflare build && ./node_modules/.bin/opennextjs-cloudflare deploy
+```
+
+Print the live `*.workers.dev` link and open it.
+
+### 9. Link the site to Blanxer
+
+Call `blanxer_set_storefront_url { url }` (or the merchant pastes the link in Blanxer → avatar menu → **BlanxerAPI** → Your website). Blanxer then uses the site in SMS tracking links, the delivered email, flash-sale alerts, the product feed and the sitemap. Register the feed with Meta and submit the sitemap to Google Search Console. See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md).
+
+### 10. Custom domain (optional)
+
+Add it in Cloudflare, then update the link (step 9).
+
+### 11. Retire the subdomain site (optional, merchant's choice)
+
+Only after step 9. Every page on `<sub>.blanxer.io` then shows a placeholder, **including tracking links sent before today**. See [Deploy to Cloudflare → Retiring the old subdomain site](https://developers.blanxer.com/deploy-cloudflare.md#retiring-the-old-subdomain-site).
+
+### 12. Live check
+
+On the live site open home, a product, checkout, the three payment/tracking pages and a real `/track/<id>`. Place one real COD order and have the merchant cancel it in the dashboard. Hand over a README that says how to edit and redeploy.
+
+## Next
+
+- [Checkout](https://developers.blanxer.com/checkout.md) is the most important page. Read it before touching `/checkout`.
+- The API spec for every endpoint a site uses: [openapi.yaml](https://developers.blanxer.com/openapi.yaml).

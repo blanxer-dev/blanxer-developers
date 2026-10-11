@@ -1,0 +1,1745 @@
+openapi: 3.1.0
+info:
+  title: BlanxerAPI (public endpoints for custom store websites)
+  version: 1.0.0
+  summary: The public Blanxer API endpoints a custom Next.js store website uses.
+  description: |
+    Only the endpoints a BlanxerAPI custom site uses. No admin routes, no customer
+    login (`/customer/auth`, `/customer/account`), no wishlist or rewards.
+
+    - No API key. CORS `*`.
+    - Reads can run on the server. Writes (orders, coupons, payment starts, hold
+      release, stock alerts, forms, Meta events, reviews, cancels) must run in the
+      browser: several are rate-limited per IP.
+    - Errors: HTTP 400 `{message}`; validation errors `{error_type: "zod_validation", fields}`
+      or `{fields}`; some field errors use HTTP 401 `{fields}`; rate limits HTTP 429 with a
+      plain-text body.
+    - Guides: https://developers.blanxer.com/llms.txt
+  contact:
+    url: https://developers.blanxer.com
+security: []   # public API: no key, no auth
+
+servers:
+  - url: https://api.blanxer.com
+    description: Production
+  - url: https://api-dev.blanxer.com
+    description: Development (sandbox store)
+tags:
+  - name: Store
+    description: The store config (theme, categories, checkout settings, payment add-ons, plugins)
+  - name: Catalog
+    description: Products, variants, categories, brands, search and sale
+  - name: Flash sale
+    description: Live and upcoming flash sales, units left, notify me
+  - name: Checkout
+    description: Delivery table, coupons, custom-field uploads and placing orders (browser only)
+  - name: Payments
+    description: Starting and checking payments (browser only)
+  - name: Orders
+    description: Stock-hold release, tracking, cancel and review
+  - name: Forms and extras
+    description: Custom forms and back-in-stock alerts
+  - name: Blog
+    description: Published blog posts
+  - name: SEO
+    description: Server-built catalog sitemap and product feed
+  - name: Tracking events
+    description: Meta Conversions API relay
+
+paths:
+  /store/check_domain:
+    get:
+      tags: [Store]
+      operationId: checkDomain
+      summary: Look up a store by subdomain or custom domain
+      description: 'Cached for up to 1 hour; cleared when the merchant changes store settings. `POST` with `{"domain": "..."}` returns the same.'
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          description: The subdomain (`mystore`) or the custom domain. Lower-cased.
+          schema: { type: string, example: mystore }
+      responses:
+        '200':
+          description: Store config
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Store' }
+        '400':
+          description: '`Domain not in use`, or `{fields: {domain: "Domain is required"}}`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /product/public/{store_id}:
+    get:
+      tags: [Catalog]
+      operationId: listProducts
+      summary: All Active, non-POS products (not paginated)
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductListItem' }
+
+  /product/p/public/{store_id}:
+    get:
+      tags: [Catalog]
+      operationId: listProductsPage
+      summary: A page of Active, non-POS products
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          description: Values above 100 are treated as 100.
+          schema: { type: integer, minimum: 1, default: 30 }
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            default: created_at
+            enum: [created_at, price, compare_at_price, name, total_rating, review_count, quantity]
+        - name: sort_order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+      responses:
+        '200':
+          description: One page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductsPage' }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /product/public/{store_id}/{slug}:
+    get:
+      tags: [Catalog]
+      operationId: getProduct
+      summary: One product by slug or _id
+      description: |
+        Also returns Draft, Inactive and POS-only (`channel: 3`) products. A site must
+        show a 404 unless `status === "Active"` and `channel !== 3`. An unknown slug is
+        HTTP 400 `Product not found` (not 404). Not cached by the API.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The product
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /product/public/{store_id}/category/{slug}:
+    get:
+      tags: [Catalog]
+      operationId: getCategoryProducts
+      summary: A category and all its Active, non-POS products
+      description: '`new-arrivals` is virtual: the 12 newest products, with `category: {_id: 1, name: "New Arrivals", slug: "new-arrivals"}`.'
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, example: new-arrivals }
+      responses:
+        '200':
+          description: Category and products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category: { $ref: '#/components/schemas/Category' }
+                  products:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProductListItem' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /product/public/search/{store_id}:
+    get:
+      tags: [Catalog]
+      operationId: searchProducts
+      summary: Search Active, non-POS products
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: q
+          in: query
+          required: true
+          description: At least 3 characters; shorter returns `[]`.
+          schema: { type: string, minLength: 3 }
+      responses:
+        '200':
+          description: Up to 50 products, best match first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductListItem' }
+
+  /product/public/sale/{store_id}:
+    get:
+      tags: [Catalog]
+      operationId: listSaleProducts
+      summary: Active, non-POS products with a compare_at_price above 0 (product or any variant)
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductListItem' }
+
+  /brand/public/all/{store_id}:
+    get:
+      tags: [Catalog]
+      operationId: listBrands
+      summary: All brands
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: Brands
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brands:
+                    type: array
+                    items: { $ref: '#/components/schemas/Brand' }
+
+  /brand/public/products/{store_id}/{slug}:
+    get:
+      tags: [Catalog]
+      operationId: getBrandProducts
+      summary: A brand (with its page SEO fields) and its Active, non-POS products
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Brand and products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brand:
+                    type: object
+                    properties:
+                      _id: { type: string }
+                      name: { type: string }
+                      slug: { type: string }
+                      desc_page: { type: [string, 'null'] }
+                      page:
+                        type: [object, 'null']
+                        properties:
+                          seo_title: { type: string }
+                          seo_description: { type: string }
+                          seo_image: { type: string }
+                  products:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProductListItem' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /brand/public/details/{store_id}/{slug}:
+    get:
+      tags: [Catalog]
+      operationId: getBrandDetails
+      summary: A brand and its page-builder page (for SEO fields only)
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Brand
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brand: { $ref: '#/components/schemas/Brand' }
+                  page:
+                    type: [object, 'null']
+                    additionalProperties: true
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /product/{store_id}/{product_id}/file:
+    post:
+      tags: [Checkout]
+      operationId: uploadCustomFieldImage
+      summary: Upload a shopper's image for an `image` custom field
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PNG, JPG, JPEG or WebP, at most ~5.9 MB
+                csrf_token:
+                  type: string
+                  description: From the product detail response (not checked by the server today)
+      responses:
+        '200':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  file:
+                    type: object
+                    properties:
+                      file_url: { type: string, format: uri }
+                      file_name: { type: string }
+                      size: { type: number }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /public/flash-sale/{store_id}:
+    get:
+      tags: [Flash sale]
+      operationId: listFlashSales
+      summary: Live flash sales and those starting within 14 days
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: Sales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  server_time: { type: string, format: date-time }
+                  sales:
+                    type: array
+                    items: { $ref: '#/components/schemas/FlashSale' }
+
+  /public/flash-sale/{store_id}/product/{product_id}:
+    get:
+      tags: [Flash sale]
+      operationId: getProductFlashSale
+      summary: One product's live or upcoming flash sale and units left
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Sale or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  server_time: { type: string, format: date-time }
+                  sale:
+                    oneOf:
+                      - type: 'null'
+                      - allOf:
+                          - $ref: '#/components/schemas/FlashSale'
+                          - type: object
+                            properties:
+                              offer_price_from: { type: [number, 'null'] }
+                  units:
+                    description: Only while live, with show_stock_left, for a product that doesn't continue selling
+                    type: [object, 'null']
+                    properties:
+                      available: { type: number }
+                      in_checkout: { type: number }
+
+  /public/flash-sale/{store_id}/notify:
+    post:
+      tags: [Flash sale]
+      operationId: notifyFlashSale
+      summary: Ask to be told when an upcoming sale starts (browser only; 10 per 15 min per IP)
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaign_id]
+              properties:
+                campaign_id: { type: string }
+                product_id: { type: string }
+                product_name: { type: string, maxLength: 200 }
+                url:
+                  type: string
+                  maxLength: 500
+                  description: Kept only when it is on the store's own domains (including the saved site link)
+                phone: { type: string, pattern: '^\d{10}$' }
+                email: { type: string, format: email }
+              description: '`phone` or `email` is required.'
+      responses:
+        '200':
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string, example: "We'll let you know when the sale starts." }
+        '400':
+          $ref: '#/components/responses/MessageError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /public/delivery_charge/{store_id}:
+    get:
+      tags: [Checkout]
+      operationId: getDeliveryCharges
+      summary: The store's delivery places, COD flags and weight-bracket charges
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: Delivery table
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeliveryTable' }
+
+  /public/coupon:
+    post:
+      tags: [Checkout]
+      operationId: applyCoupon
+      summary: Look up and check a coupon code (browser only)
+      description: Each successful call reserves one use of the coupon for 5 minutes. Send the returned `_id` with the order, never the code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store, code]
+              properties:
+                store: { type: string, description: "Store id" }
+                code: { type: string, description: "Exact code (case-sensitive)" }
+                products:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      product: { type: string }
+                      variant: { type: string, default: '' }
+                      quantity: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: The coupon
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Coupon' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /order/{store_id}:
+    post:
+      tags: [Checkout]
+      operationId: placeOrder
+      summary: Place an order (browser only; 5 per 10 minutes per store and IP)
+      description: |
+        The server recomputes prices, stock, delivery, COD and the coupon.
+        Testing: `customer_phone_number` `0000000000`, or a `customer_email` containing
+        `mailinator.net`, returns `{"success": true}` after validation and creates nothing.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderRequest' }
+      responses:
+        '200':
+          description: Order created (or a test order, without `_id`)
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/OrderResponse'
+                  - type: object
+                    title: TestOrderResponse
+                    properties:
+                      success: { type: boolean, const: true }
+        '400':
+          description: Validation (`{error_type, fields}`) or a business rule (`{message}`)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/FieldError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /payment/esewa/init:
+    post:
+      tags: [Payments]
+      operationId: startEsewa
+      summary: Start an eSewa payment (form post)
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: Post these fields (all except action_url) as a form to action_url
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EsewaForm' }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/khalti/init:
+    post:
+      tags: [Payments]
+      operationId: startKhalti
+      summary: Start a Khalti payment (redirect to payment_url)
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: Khalti's initiate response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pidx: { type: string }
+                  payment_url: { type: string, format: uri }
+                  expires_at: { type: string }
+                  expires_in: { type: number }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/fonepay/init:
+    post:
+      tags: [Payments]
+      operationId: startFonePay
+      summary: Start a FonePay redirect payment
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: Redirect to url
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UrlResponse' }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/dynamic_qr/init:
+    post:
+      tags: [Payments]
+      operationId: startQr
+      summary: Start an in-page QR payment (QR_Dynamic with self=true, QR without)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/PaymentStart'
+                - type: object
+                  properties:
+                    self:
+                      type: boolean
+                      default: false
+                      description: true for QR_Dynamic (the store's own Fonepay); false for QR (Blanxer QR, needs an approved QR request)
+      responses:
+        '200':
+          description: QR data
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QrStart' }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/dynamic_qr/check/{transaction}:
+    get:
+      tags: [Payments]
+      operationId: checkQr
+      summary: Has the QR payment arrived?
+      parameters:
+        - name: transaction
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+        '400':
+          description: '`Payment not received` (not yet)'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /payment/fonepay_checkout/init:
+    post:
+      tags: [Payments]
+      operationId: startFonepayCheckout
+      summary: Start a Checkout by Fonepay payment (QR + bank app links)
+      description: On api-dev it uses Fonepay development credentials and asks for 1.1.
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: QR data and banks
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/QrStart'
+                  - type: object
+                    properties:
+                      banks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            bankName: { type: string }
+                            bankCode: { type: string }
+                            bankIcon: { type: string }
+                            packageName: { type: string }
+                            intentScheme: { type: string }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/fonepay_checkout/check/{transaction}:
+    get:
+      tags: [Payments]
+      operationId: checkFonepayCheckout
+      summary: Has the Checkout by Fonepay payment arrived? (asks Fonepay)
+      parameters:
+        - name: transaction
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+                  amount: { type: number }
+        '400':
+          description: '`Payment not received` (not yet)'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /payment/npx/init:
+    post:
+      tags: [Payments]
+      operationId: startNpx
+      summary: Start an NPX (Nepal Payment Solution) payment (form post)
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: Post these fields (all except action_url) as a form to action_url
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [action_url]
+                properties:
+                  action_url: { type: string, format: uri }
+                  Signature: { type: string }
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /payment/nabil_card/init:
+    post:
+      tags: [Payments]
+      operationId: startNabilCard
+      summary: Start a Nabil Bank card payment (redirect)
+      description: A failed card payment returns to `<url>/payment/failed?method=card`.
+      requestBody:
+        $ref: '#/components/requestBodies/PaymentStart'
+      responses:
+        '200':
+          description: Redirect to url
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UrlResponse' }
+        '400':
+          $ref: '#/components/responses/PaymentStartError'
+
+  /order/public/release-hold:
+    post:
+      tags: [Orders]
+      operationId: releaseHold
+      summary: Give an unpaid order's held units back early (QR timer ran out, or the shopper confirmed closing the QR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store_id, order_id, transaction_id]
+              properties:
+                store_id: { type: string }
+                order_id: { type: string }
+                transaction_id: { type: string, description: "The transaction from the payment start" }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  released: { type: boolean, description: "false when already paid or not Inactive" }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /order/public/{store_id}/id/{order_id}:
+    get:
+      tags: [Orders]
+      operationId: trackOrder
+      summary: Order details for the tracking page
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: order_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The order
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackedOrder' }
+        '400':
+          description: '`Order item not found`, or a validation error for a malformed id'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Error'
+                  - $ref: '#/components/schemas/ValidationError'
+
+  /order/public/cancel:
+    post:
+      tags: [Orders]
+      operationId: cancelOrder
+      summary: Cancel a Pending or Processing order (store must allow it)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store_id, order_id, phone_number]
+              properties:
+                store_id: { type: string }
+                order_id: { type: string }
+                phone_number: { type: string, minLength: 10, maxLength: 10 }
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessMessage' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+        '401':
+          $ref: '#/components/responses/FieldError'
+
+  /order/public/submit-review:
+    post:
+      tags: [Orders]
+      operationId: submitReview
+      summary: Review a product from an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store_id, order_id, product_id, phone_number, rating]
+              properties:
+                store_id: { type: string }
+                order_id: { type: string }
+                product_id: { type: string }
+                phone_number: { type: string, minLength: 10, maxLength: 10 }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                review: { type: string, maxLength: 1000, default: '' }
+      responses:
+        '200':
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  rating: { type: integer }
+                  review: { type: string }
+        '400':
+          $ref: '#/components/responses/MessageError'
+        '401':
+          $ref: '#/components/responses/FieldError'
+
+  /customer/stock-alert:
+    post:
+      tags: [Forms and extras]
+      operationId: requestStockAlert
+      summary: Back-in-stock alert (no login; store must have back_in_stock on)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store, product]
+              description: '`phone` or `email` is required.'
+              properties:
+                store: { type: string }
+                product: { type: string }
+                variant_id: { type: string, default: '' }
+                phone: { type: string }
+                email: { type: string, format: email }
+                product_name: { type: string }
+                product_url: { type: string }
+      responses:
+        '200':
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      subscribed: { type: boolean }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /public/form/{store_id}/{slug}:
+    get:
+      tags: [Forms and extras]
+      operationId: getForm
+      summary: A published custom form
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The form
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  form: { $ref: '#/components/schemas/Form' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /public/form/{store_id}/{slug}/submit:
+    post:
+      tags: [Forms and extras]
+      operationId: submitForm
+      summary: Submit a custom form (browser only; 10 per 15 min per IP)
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: object
+                  description: Values keyed by field `key`. `full_name` and `phone` (10 digits) are always required.
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessMessage' }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /public/blog/{store_id}:
+    get:
+      tags: [Blog]
+      operationId: listBlogPosts
+      summary: Published posts, newest first, cursor-paginated
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 12 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Posts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BlogList' }
+
+  /public/blog/{store_id}/category/{category}:
+    get:
+      tags: [Blog]
+      operationId: listBlogPostsInCategory
+      summary: Published posts in a blog category
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: category
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 12 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Posts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BlogList' }
+
+  /public/blog/{store_id}/{slug}:
+    get:
+      tags: [Blog]
+      operationId: getBlogPost
+      summary: One published post
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The post
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BlogPost' }
+        '400':
+          $ref: '#/components/responses/MessageError'
+
+  /public/meta-event/{store_id}:
+    post:
+      tags: [Tracking events]
+      operationId: relayMetaEvent
+      summary: Relay a Meta Pixel event to the Conversions API (browser only; 100 per min per IP)
+      description: Does nothing when the store has no meta_capi plugin. Always returns success.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MetaEvent' }
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /public/sitemap/{store_id}.xml:
+    get:
+      tags: [SEO]
+      operationId: getCatalogSitemap
+      summary: Catalog sitemap with absolute links on the store's site
+      description: Links use storefront_url, else the verified custom domain, else <sub>.blanxer.io. Leaves out /p/ pages when storefront_url is set.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: urlset XML
+          content:
+            application/xml:
+              schema: { type: string }
+        '404':
+          $ref: '#/components/responses/MessageError'
+
+  /public/product-feed/{store_id}.xml:
+    get:
+      tags: [SEO]
+      operationId: getProductFeed
+      summary: Product feed (RSS 2.0 + g namespace) for Meta and Google Merchant
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: RSS XML
+          content:
+            application/xml:
+              schema: { type: string }
+        '404':
+          $ref: '#/components/responses/MessageError'
+
+components:
+  parameters:
+    StoreId:
+      name: store_id
+      in: path
+      required: true
+      description: The store `_id` from check_domain (24 hex characters)
+      schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+
+  requestBodies:
+    PaymentStart:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PaymentStart' }
+
+  responses:
+    MessageError:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+    FieldError:
+      description: A field error returned with HTTP 401 (email required, phone mismatch)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              fields:
+                type: object
+                additionalProperties: { type: string }
+    PaymentStartError:
+      description: |
+        `{message}` (gateway not available, order not found, ...) or
+        `{fields: {url: "Valid Return URL is required"}}` (eSewa, Khalti and FonePay reject localhost),
+        or a zod validation error.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/Error'
+              - $ref: '#/components/schemas/ValidationError'
+    RateLimited:
+      description: Too many requests (plain text body)
+      content:
+        text/html:
+          schema: { type: string, example: 'Too many requests, please try again later.' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      properties:
+        error_type: { type: string, const: zod_validation }
+        fields:
+          type: object
+          description: Message per field; nested keys are dotted, e.g. `products.0.quantity`
+          additionalProperties: { type: string }
+
+    SuccessMessage:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
+    Store:
+      type: object
+      description: Store config from check_domain (fields a custom site uses)
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        display_image: { type: string }
+        sub_domain: { type: string }
+        custom_domain: { type: string }
+        storefront_url: { type: string, description: "The saved custom-site origin, '' when none" }
+        plan: { type: string, description: "'' (free), pos, basic, premium, plus, platinum" }
+        under_construction: { type: string, enum: ['off', sub, cus, both], description: "Blanxer-hosted site only" }
+        use_advanced_inventory: { type: boolean }
+        checkout:
+          type: object
+          properties:
+            receiver_info: { type: boolean }
+            pan: { type: boolean }
+            company_name: { type: boolean }
+            estimated_delivery: { type: boolean }
+            extras:
+              type: object
+              properties:
+                email_required: { type: boolean }
+                sender_email_required: { type: boolean }
+                checkout_note: { type: string }
+                allow_customer_cancellation: { type: boolean }
+              additionalProperties: true
+        customization:
+          type: object
+          properties:
+            brand_name: { type: string }
+            brand_logo: { type: string }
+            favicon: { type: string }
+            theme: { type: string, description: "A palette name (default violet) or custom#RRGGBB" }
+            font: { type: string, description: "Google Fonts family, default Poppins" }
+            currency_indicator: { type: string, description: "Default रू" }
+            image_ratio: { type: number, description: '1 = 1:1, 2 = 4:5, 3 = 9:16 (crop shape for new uploads)' }
+            top_bar_text: { type: string }
+            top_bar_goto: { type: string }
+            popup_image: { type: string }
+            popup_goto: { type: string }
+            hero_images: { type: array, items: { type: string } }
+            hero_taglines: { type: array, items: { type: string } }
+            hero_links: { type: array, items: { type: string } }
+          additionalProperties: true
+        navigation:
+          type: object
+          properties:
+            style: { type: string }
+            items: { type: array, items: { type: object, additionalProperties: true } }
+            extras: {}
+        footer:
+          type: object
+          properties:
+            style: { type: string }
+            details: {}
+        categories:
+          type: array
+          items: { $ref: '#/components/schemas/Category' }
+        blog_categories:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              slug: { type: string }
+              image: { type: string }
+              order: { type: number }
+              seo_title: { type: string }
+              seo_description: { type: string }
+              seo_image: { type: string }
+        social:
+          type: object
+          properties:
+            facebook: { type: string }
+            instagram: { type: string }
+            tiktok: { type: string }
+            whatsapp: { type: string }
+        compliance:
+          type: object
+          additionalProperties: true
+        addons:
+          type: object
+          properties:
+            fonepay_dynamic: { type: boolean }
+            fonepay_checkout: { type: boolean }
+            qr_request_enabled: { type: boolean }
+            qr_request: { type: string, enum: [none, pending, approved, rejected] }
+            esewa: { type: boolean }
+            fonepay: { type: boolean }
+            khalti: { type: boolean }
+            npx: { type: boolean }
+            nbank_card: { type: boolean }
+            cybersource: { type: boolean, const: false }
+          additionalProperties: true
+        setting:
+          type: object
+          description: "Payment settings; secret keys are masked to 'yes' or ''"
+          properties:
+            esewa_secret: { type: string, enum: ['yes', ''] }
+            fonepay_dynamic_key: { type: string, enum: ['yes', ''] }
+            fonepay_checkout_key: { type: string, enum: ['yes', ''] }
+          additionalProperties: true
+        plugins:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, examples: [meta_tags, ga, gtm, fb_pixel, meta_capi, clarity, whatsapp_chat, tawk, top_bar_color, product_custom_options] }
+              details: {}
+        customer_program:
+          type: object
+          properties:
+            enabled: { type: boolean, description: "Customer accounts on the Blanxer-hosted site; custom sites ignore it" }
+            loyalty_enabled: { type: boolean }
+            membership_enabled: { type: boolean }
+            back_in_stock:
+              type: object
+              properties:
+                enabled: { type: boolean }
+            login: { type: object, additionalProperties: true }
+      additionalProperties: true
+
+    Category:
+      type: object
+      properties:
+        _id: { type: [string, number] }
+        name: { type: string }
+        slug: { type: string }
+        image: { type: string }
+        order: { type: number }
+        seo_title: { type: string }
+        seo_description: { type: string }
+        seo_image: { type: string }
+        hide_on_product: { type: boolean }
+
+    Brand:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        logo: { type: string }
+        page: { type: [string, 'null'] }
+        desc_page: { type: [string, 'null'] }
+      additionalProperties: true
+
+    ProductListItem:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        price: { type: [number, 'null'], description: "null when variants have a price range" }
+        min_price: { type: [number, 'null'] }
+        max_price: { type: [number, 'null'] }
+        compare_at_price: { type: [number, 'null'] }
+        has_variants: { type: boolean }
+        in_stock: { type: boolean }
+        quantity: { type: number, description: "Sum of positive stock" }
+        total_variants: { type: number }
+        channel: { type: number, description: '1 = all, 2 = website, 3 = POS only' }
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string }
+              price: { type: number }
+              compare_at_price: { type: number }
+              quantity: { type: number }
+        total_rating: { type: number, description: "Sum of ratings" }
+        review_count: { type: number }
+        image_urls: { type: array, items: { type: string } }
+        status: { type: string }
+        colors: { type: array, items: { type: string } }
+        sizes: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        categories: { type: array, items: { type: string }, description: "Category names" }
+        created_at: { type: string, format: date-time }
+        release_date: { type: [string, 'null'] }
+        brand:
+          description: Full brand on category, new-arrivals and search; an id on sale; absent elsewhere
+          oneOf:
+            - $ref: '#/components/schemas/Brand'
+            - type: string
+
+    ProductsPage:
+      type: object
+      properties:
+        success: { type: boolean }
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            per_page: { type: integer }
+            total: { type: integer }
+            total_pages: { type: integer }
+            sort_by: { type: string }
+            sort_order: { type: string }
+        products:
+          type: array
+          items: { $ref: '#/components/schemas/ProductListItem' }
+
+    Variant:
+      type: object
+      properties:
+        _id: { type: string }
+        option_name: { type: string, description: '"Colour/Size", "Size" or "Colour"' }
+        price: { type: number }
+        compare_at_price: { type: number }
+        quantity: { type: number }
+        sku: { type: string }
+        weight: { type: number, description: "kg" }
+        image_url: { type: string }
+        barcode: { type: string }
+      additionalProperties: true
+
+    Product:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        status: { type: string, description: 'Show only "Active"' }
+        channel: { type: number, description: 'Hide 3 (POS only)' }
+        description: { type: string, description: "HTML" }
+        long_description: { type: string, description: "HTML" }
+        price: { type: number }
+        compare_at_price: { type: number }
+        quantity: { type: number, description: "Website outlet stock when advanced inventory is on" }
+        weight: { type: number, description: "kg" }
+        sku: { type: string }
+        barcode: { type: string }
+        continue_selling: { type: boolean }
+        colors: { type: array, items: { type: string }, description: 'May carry a swatch: "Name:#hex"; empty without variants' }
+        sizes: { type: array, items: { type: string } }
+        variants:
+          type: array
+          items: { $ref: '#/components/schemas/Variant' }
+        image_urls: { type: array, items: { type: string } }
+        categories: { type: array, items: { type: string }, description: "Category ids" }
+        brand:
+          oneOf:
+            - $ref: '#/components/schemas/Brand'
+            - type: 'null'
+        tags: { type: array, items: { type: string } }
+        custom_fields:
+          type: array
+          description: '[type, label, required, placeholder, options, price]'
+          items: { type: array }
+        seo_title: { type: string }
+        seo_description: { type: string }
+        seo_image: { type: string }
+        total_rating: { type: number }
+        review_count: { type: number }
+        reviews:
+          type: array
+          items:
+            type: object
+            properties:
+              rating: { type: number }
+              review: { type: string }
+              images: { type: array, items: { type: string } }
+              customer_name: { type: string }
+              verified_purchase: { type: boolean }
+              created_at: { type: string }
+        similar_products:
+          type: array
+          items: { $ref: '#/components/schemas/ProductListItem' }
+        csrf_token: { type: string }
+        release_date: { type: [string, 'null'] }
+        created_at: { type: string }
+        updated_at: { type: string }
+      additionalProperties: true
+
+    FlashSale:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [live, upcoming] }
+        start_at: { type: string, format: date-time }
+        end_at: { type: string, format: date-time }
+        discount_type: {}
+        discount_value: { type: number }
+        max_per_order: { type: number, description: "0 = no limit" }
+        show_countdown: { type: boolean }
+        show_stock_left: { type: boolean }
+        sold_out: { type: boolean }
+
+    DeliveryTable:
+      type: object
+      properties:
+        defaults:
+          type: array
+          description: Charges for ≤1, ≤2, ≤3, ≤5, ≤10, >10 kg
+          items: { type: number }
+          minItems: 6
+          maxItems: 6
+        places:
+          type: array
+          description: "[name, cod, ≤1, ≤2, ≤3, ≤5, ≤10, >10]. cod allows COD when true or 'Y'. -1 = use the default."
+          items:
+            type: array
+            prefixItems:
+              - { type: string }
+              - { type: [boolean, string] }
+            items: { type: number }
+
+    Coupon:
+      type: object
+      properties:
+        _id: { type: string, description: "Send this as `coupon` on the order" }
+        code: { type: string }
+        coupon_type: { type: integer, enum: [1, 2, 3], description: '1 flat, 2 percent, 3 percent of delivery' }
+        coupon_value: { type: number }
+        min_order_value: { type: number, description: "-1 = none" }
+        max_discount_amount: { type: number, description: "-1 = no cap" }
+        total_applicable_amount: { type: number }
+        only_for_cod_payment: { type: boolean }
+        only_for_online_payment: { type: boolean }
+        categories: { type: array, items: { type: string } }
+        places: { type: array, items: { type: string }, description: "Empty = every place" }
+
+    OrderRequest:
+      type: object
+      required: [products, customer_full_name, customer_phone_number, customer_address_city, customer_address]
+      properties:
+        products:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              product: { type: string }
+              variant: { type: string, default: '', description: "Variant _id, '' without variants" }
+              quantity: { type: number, minimum: 1, default: 1 }
+              customization_charge: { type: number, minimum: 0, default: 0, description: "Per unit" }
+              custom_fields:
+                type: array
+                items: { type: string, description: 'label|||type|||value' }
+        meta:
+          type: object
+          properties:
+            event_id: { type: string, maxLength: 100 }
+            fbp: { type: string, maxLength: 200 }
+            fbc: { type: string, maxLength: 400 }
+            event_source_url: { type: string, maxLength: 1000 }
+        customer_full_name: { type: string, minLength: 2, maxLength: 120 }
+        customer_phone_number: { type: string, minLength: 10, maxLength: 10 }
+        customer_alt_phone_number: { type: string, default: '', description: "'' or 10 digits" }
+        customer_email: { type: string, description: "Email or ''; required when checkout.extras.email_required" }
+        customer_address_city: { type: string, minLength: 2, maxLength: 320, description: "Exact delivery place name" }
+        customer_address: { type: string, minLength: 2, maxLength: 320 }
+        customer_address_landmark: { type: string, maxLength: 320, default: '' }
+        order_note: { type: string, maxLength: 320, default: '' }
+        sender_full_name: { type: string, maxLength: 200, default: '' }
+        sender_phone_number: { type: string, maxLength: 15, default: '' }
+        sender_email: { type: string, description: "Email or ''" }
+        delivery_date: { type: string, description: "YYYY-MM-DD" }
+        pan: { type: string, maxLength: 9 }
+        company_name: { type: string, maxLength: 50 }
+        paymentMethod:
+          type: string
+          default: COD
+          enum: [COD, QR_Dynamic, FonepayCheckout, QR, Esewa, FonePay, Khalti, NPX, nbank_card]
+        url: { type: string, description: "The site's origin, e.g. https://mystore.com (no trailing slash)" }
+        coupon: { type: string, default: '', description: "The coupon _id, or ''. A code is silently ignored." }
+
+    OrderResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        _id: { type: string }
+        order_number: { type: number }
+        total_price: { type: number, description: "Products + customization − discount (no delivery)" }
+        total_quantity: { type: number }
+        delivery_charge: { type: number }
+        email: { type: string }
+        slug: { type: string }
+        hold_seconds: { type: number, description: "Online orders that hold stock only" }
+        hold_expires_at: { type: string, format: date-time }
+
+    PaymentStart:
+      type: object
+      required: [store, order, url]
+      properties:
+        store: { type: string, description: "Store id" }
+        order: { type: string, description: "Order _id" }
+        url: { type: string, description: "The site's origin; payments return to <url>/payment/success or /payment/failed" }
+
+    UrlResponse:
+      type: object
+      properties:
+        url: { type: string, format: uri }
+
+    EsewaForm:
+      type: object
+      properties:
+        action_url: { type: string, format: uri }
+        amount: { type: number }
+        total_amount: { type: number }
+        product_service_charge: { type: number }
+        product_delivery_charge: { type: number }
+        tax_amount: { type: number }
+        transaction_uuid: { type: string }
+        product_code: { type: string }
+        success_url: { type: string }
+        failure_url: { type: string }
+        signed_field_names: { type: string }
+        signature: { type: string }
+
+    QrStart:
+      type: object
+      properties:
+        prn: { type: string }
+        transaction: { type: string, description: "Use for the check and for release-hold" }
+        amount: { type: number }
+        socket_url: { type: string }
+        qr_message: { type: string, description: "Render as a QR code" }
+
+    TrackedOrder:
+      type: object
+      properties:
+        _id: { type: string }
+        slug: { type: string }
+        status: { type: string, enum: [Inactive, Draft, Pending, Processing, Dispatched, Delivered, Cancelled, Returned] }
+        payment_status: { type: string, enum: [Unpaid, Processing, Paid, Failed, Refunded] }
+        store: { type: string }
+        customer_full_name: { type: string }
+        customer_email: { type: string }
+        customer_phone_number: { type: string, description: "First 7 digits masked" }
+        customer_address_province: { type: string }
+        customer_address_city: { type: string }
+        customer_address: { type: string }
+        customer_address_landmark: { type: string }
+        ordered_products:
+          type: array
+          items:
+            type: object
+            properties:
+              image_url: { type: string }
+              product_id: { type: string }
+              product_name: { type: string }
+              price: { type: number }
+              compare_at_price: { type: number }
+              variant_id: { type: string }
+              variant_name: { type: string }
+              quantity: { type: number }
+              print: {}
+        product_total_price: { type: number }
+        delivery_charge: { type: number }
+        customization_total: { type: number }
+        discount:
+          type: object
+          properties:
+            d_value: { type: number }
+            code: { type: string }
+        partial_payment_amount: { type: number }
+        review:
+          type: object
+          properties:
+            count: { type: number }
+            total_rating: { type: number }
+            received: { type: array, items: { type: string } }
+            reviews: { type: array, items: { type: string } }
+        reviews:
+          type: array
+          items:
+            type: object
+            properties:
+              product: { type: string }
+              images: { type: array, items: { type: string } }
+              review: { type: string }
+              rating: { type: number }
+
+    Form:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        page_header: { type: string }
+        page_subheader: { type: string }
+        title: { type: string }
+        description: { type: string }
+        submit_label: { type: string }
+        success_message: { type: string }
+        page_footer: { type: string, description: "HTML" }
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              type:
+                type: string
+                enum: [text, multi_text, badges, textarea, richtext, select, tags, number, email, phone, url, date, time, datetime, checkbox, checkbox_group, radio, slider, color, heading, divider]
+              system: { type: boolean }
+              label: { type: string }
+              placeholder: { type: string }
+              help_text: { type: string }
+              required: { type: boolean }
+              width: { type: string, enum: [full, half] }
+              options: { type: array, items: { type: string } }
+              multiple: { type: boolean }
+              sub_fields:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key: { type: string }
+                    label: { type: string }
+                    placeholder: { type: string }
+                    icon: { type: string }
+              min: { type: number }
+              max: { type: number }
+              step: { type: number }
+
+    BlogCard:
+      type: object
+      properties:
+        _id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        excerpt: { type: string }
+        featured_image: { type: string }
+        author: {}
+        categories: { type: array, items: { type: string } }
+        tags: { type: array, items: { type: string } }
+        reading_time: { type: number }
+        view_count: { type: number }
+        published_at: { type: [string, 'null'] }
+        scheduled_at: { type: [string, 'null'] }
+        created_at: { type: string }
+
+    BlogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/BlogCard' }
+        next_cursor: { type: [string, 'null'] }
+        has_more: { type: boolean }
+        all_categories:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              image: { type: string }
+
+    BlogPost:
+      allOf:
+        - $ref: '#/components/schemas/BlogCard'
+        - type: object
+          properties:
+            seo_title: { type: string }
+            seo_description: { type: string }
+            seo_image: { type: string }
+            no_index: { type: boolean }
+            sections:
+              type: array
+              description: Blanxer section format (page-builder section codes)
+              items: { type: object, additionalProperties: true }
+            related:
+              type: array
+              items: { $ref: '#/components/schemas/BlogCard' }
+            products:
+              type: array
+              items: { $ref: '#/components/schemas/ProductListItem' }
+            single_products:
+              type: array
+              items: { type: object, additionalProperties: true }
+            blogs:
+              type: array
+              items: { type: object, additionalProperties: true }
+
+    MetaEvent:
+      type: object
+      required: [event_name]
+      properties:
+        event_name: { type: string, enum: [ViewContent, AddToCart, InitiateCheckout, Purchase] }
+        event_id: { type: string, maxLength: 100 }
+        event_source_url: { type: string, maxLength: 1000 }
+        fbp: { type: string, maxLength: 200 }
+        fbc: { type: string, maxLength: 400 }
+        email: { type: string, maxLength: 200 }
+        phone: { type: string, maxLength: 30 }
+        custom_data:
+          type: object
+          properties:
+            value: { type: number }
+            currency: { type: string, maxLength: 8 }
+            content_type: { type: string, maxLength: 20 }
+            content_ids:
+              type: array
+              maxItems: 200
+              items: { type: string, maxLength: 100 }
+            contents: {}
+            num_items: { type: number }
