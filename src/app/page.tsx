@@ -109,7 +109,7 @@ export default function Home() {
 
         {/* How it works */}
         <Section id="how">
-          <Heading eyebrow="How it works" title="Three steps. That's it." />
+          <Heading title="Three steps. That's it." />
           <ol className="mt-14 grid gap-5 md:grid-cols-3">
             {steps.map((s, i) => (
               <li key={s.title} className="rounded-3xl border border-border bg-surface p-6 sm:p-7">
@@ -128,7 +128,7 @@ export default function Home() {
         <Section id="powered" className="border-t border-border">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.75fr]">
             <div>
-              <Heading eyebrow="Agents build it. Blanxer powers it." title="You get the look. We handle the selling." />
+              <Heading title="You get the look. We handle the selling." />
               <div className="mt-10 grid gap-5 sm:grid-cols-2">
                 <Card>
                   <p className="font-mono text-xs uppercase tracking-wide text-faint">Your agent builds</p>
@@ -160,7 +160,7 @@ export default function Home() {
 
         {/* What every site gets */}
         <Section id="features" className="border-t border-border">
-          <Heading eyebrow="Every site gets" title="Done right from day one." />
+          <Heading title="Done right from day one." />
           <div className="mt-12 grid gap-5 sm:grid-cols-3">
             {features.map((f) => (
               <Card key={f.title}>
@@ -222,7 +222,7 @@ export default function Home() {
         <Section id="developers" className="border-t border-border">
           <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <Heading eyebrow="For developers" title="Everything's open." lead="Read the docs, use the npm package, or build it by hand." />
+              <Heading title="Everything's open." lead="Read the docs, use the npm package, or build it by hand." />
               <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-surface font-mono text-[13px]">
                 <div className="border-b border-border px-4 py-2 text-xs text-faint">terminal</div>
                 <pre className="overflow-x-auto px-4 py-4 leading-relaxed text-fg">
@@ -252,7 +252,7 @@ export default function Home() {
 
         {/* FAQ */}
         <Section id="faq" className="border-t border-border">
-          <Heading eyebrow="FAQ" title="Questions?" />
+          <Heading title="Questions?" />
           <div className="mt-10">
             <FaqList faqs={homeFaqs} />
           </div>

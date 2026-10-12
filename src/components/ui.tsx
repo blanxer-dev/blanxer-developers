@@ -8,15 +8,10 @@ export function Section({ id, children, className = "" }: { id?: string; childre
   );
 }
 
-export function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent-text">{children}</p>;
-}
-
-export function Heading({ eyebrow, title, lead, align = "left" }: { eyebrow?: ReactNode; title: ReactNode; lead?: ReactNode; align?: "left" | "center" }) {
+export function Heading({ title, lead, align = "left" }: { title: ReactNode; lead?: ReactNode; align?: "left" | "center" }) {
   const center = align === "center";
   return (
     <div className={`flex flex-col gap-5 ${center ? "items-center text-center" : "items-start"}`}>
-      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
       <h2 className="max-w-3xl text-3xl font-semibold leading-[1.1] tracking-tight text-fg sm:text-4xl md:text-[2.75rem]">{title}</h2>
       {lead ? <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg">{lead}</p> : null}
     </div>
