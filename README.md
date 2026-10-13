@@ -72,6 +72,28 @@ Aimed at people in Nepal searching to build an ecommerce website with Claude, Ch
 - **Home page:** Organization, WebSite, SoftwareApplication (`areaServed: Nepal`), HowTo and FAQPage JSON-LD. Open Graph locale `en_NP`.
 - **Sitemap:** `sitemap.xml` lists the home page, every tool page and every guide.
 
+## Meta Pixel + Conversions API
+
+- **Pixel:** the Blanxer marketing pixel `1438544826749597`, the same one blanxer.com and enterprise.blanxer.com use. `src/lib/pixel.ts` loads it and holds the event list; `src/components/MetaPixel.tsx` sends PageView on every page.
+- **Events:**
+  - **PageView:** every page, including client-side navigations.
+  - **ViewContent:** a `/build-with/<tool>/` page.
+  - **CopyPrompt:** a custom event, sent when someone clicks Copy prompt.
+- **Conversions API:** each event is also POSTed to `/api/meta` (`functions/api/meta.ts`, a Cloudflare Pages Function) with the **same event id**, so Meta counts it once.
+  - The function adds IP, user agent, `_fbp`, and `_fbc` (or one built from `fbclid`).
+  - It sends the event to Graph `v25.0`, the same version as the backend.
+- **Guards:** same-origin requests only, the three event names only, small bodies, and no personal data taken from the browser.
+- **Secrets** on the Pages project:
+  - `META_CAPI_TOKEN`: Events Manager → the pixel → Settings → Conversions API → Generate access token. Until it's set, the function accepts events and drops them; the pixel itself still works.
+  - `META_TEST_EVENT_CODE`, optional: sends server events to Events Manager → Test events while checking.
+
+  ```bash
+  npx wrangler pages secret put META_CAPI_TOKEN --project-name blanxer-developers
+  ```
+
+- **`wrangler pages deploy out`** must run from the repo root, so it also uploads `functions/`.
+- **Local test:** `npx wrangler pages dev out --binding META_CAPI_TOKEN=…` serves the site with the function.
+
 ## Adding or renaming a guide
 
 1. Add `content/<slug>.md`, starting with a `# Title`.

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { MetaPixel } from "@/components/MetaPixel";
 import { HOME_DESCRIPTION, HOME_TITLE, LEGAL_NAME, SITE_NAME, SITE_URL } from "@/lib/site";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
@@ -36,7 +37,10 @@ export const viewport: Viewport = { themeColor: "#ffffff", colorScheme: "light" 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <MetaPixel />
+      </body>
     </html>
   );
 }

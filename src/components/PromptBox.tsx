@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { buildPrompt } from "@/lib/site";
 import { CopyButton } from "./CopyButton";
+import { track } from "@/lib/pixel";
 
 /**
  * The copy-paste prompt. The visitor can type their store's subdomain and the prompt
@@ -23,6 +24,7 @@ export function PromptBox({ compact = false }: { compact?: boolean }) {
         </div>
         <CopyButton
           value={prompt}
+          onCopied={() => track("CopyPrompt", { content_name: "prompt", content_category: "blanxerapi" })}
           className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-4 text-xs font-medium text-white transition-colors hover:bg-black"
         >
           <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>

@@ -3,12 +3,13 @@
 import { useState, type ReactNode } from "react";
 
 /** Copies `value` and says so for a moment. `children` is the idle label. */
-export function CopyButton({ value, children = "Copy", className = "" }: { value: string | (() => string); children?: ReactNode; className?: string }) {
+export function CopyButton({ value, children = "Copy", className = "", onCopied }: { value: string | (() => string); children?: ReactNode; className?: string; onCopied?: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       onClick={async () => {
+        onCopied?.(); // counts the click even when the clipboard is blocked
         try {
           await navigator.clipboard.writeText(typeof value === "function" ? value() : value);
           setCopied(true);

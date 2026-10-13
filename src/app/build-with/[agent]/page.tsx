@@ -5,6 +5,7 @@ import { FaqList, SiteFooter, SiteHeader } from "@/components/site";
 import { JsonLd } from "@/components/ui";
 import { PromptBox } from "@/components/PromptBox";
 import { PaymentLogos } from "@/components/PaymentLogos";
+import { TrackView } from "@/components/MetaPixel";
 import { agentHref, agentPages } from "@/lib/agents";
 import { agents as agentIcons } from "@/lib/agent-icons";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -62,6 +63,7 @@ export default async function AgentPage({ params }: Props) {
   return (
     <>
       <JsonLd data={ld} />
+      <TrackView name={`Build with ${a.name}`} category="build-with" />
       <SiteHeader bar />
       <main className="flex-1">
         <section className="border-b border-border bg-surface/60">
