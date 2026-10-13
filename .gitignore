@@ -7,3 +7,5 @@ next-env.d.ts
 public/api-docs/
 public/llms-full.txt
 .DS_Store
+# local wrangler pages dev state
+.wrangler/
