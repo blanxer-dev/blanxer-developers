@@ -5,7 +5,7 @@ Most shoppers in Nepal browse on mid-range phones over mobile data. Image weight
 - **Lighthouse mobile ≥ 90** on the home page, a product page and `/checkout`;
 - **LCP < 2.5 s**.
 
-`npx blanxer-storefront check` measures them (see [Package](https://developers.blanxer.com/package.md#cli)).
+`npx blanxer-storefront check` measures them (see [Package](https://developers.blanxer.com/api-docs/package.md#cli)).
 
 ## Rule 11, in full
 
@@ -106,7 +106,7 @@ export default nextConfig;
 export { default } from '@blanxer-dev/storefront/image-loader';
 ```
 
-New or better product photos go **into Blanxer through the MCP** (`blanxer_upload_product_image`, `blanxer_request_image_upload`), so the dashboard, POS, app, feed and site all get them. See [MCP for your website](https://developers.blanxer.com/mcp-for-website.md).
+New or better product photos go **into Blanxer through the MCP** (`blanxer_upload_product_image`, `blanxer_request_image_upload`), so the dashboard, POS, app, feed and site all get them. See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md).
 
 ## Video and GIFs
 
@@ -126,7 +126,7 @@ New or better product photos go **into Blanxer through the MCP** (`blanxer_uploa
 - Read store and catalog data in **server components** (`@blanxer-dev/storefront/server`), not with client-side fetches above the fold.
 - Keep client components small: cart, variant picker, checkout. Don't make whole pages client components.
 - Load third-party tags (GA, GTM, Pixel, Clarity, chat widgets) with `next/script` `strategy="afterInteractive"` or `lazyOnload`.
-- Avoid heavy UI and animation libraries for things CSS can do. They also count toward the Worker size limit (see [Deploy](https://developers.blanxer.com/deploy-cloudflare.md#worker-size)).
+- Avoid heavy UI and animation libraries for things CSS can do. They also count toward the Worker size limit (see [Deploy](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#worker-size)).
 - Don't render page-builder data or embed the Blanxer-hosted site.
 
 ## When the check fails

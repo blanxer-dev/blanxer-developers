@@ -1,0 +1,23 @@
+# Cloudflare Pages. The guides moved from /<page> to /api-docs/<page>/ (2026-10-11);
+# the first npm release's README still links the old .md paths.
+/quickstart.md          /api-docs/quickstart.md          301
+/rules.md               /api-docs/rules.md               301
+/store-and-theme.md     /api-docs/store-and-theme.md     301
+/catalog.md             /api-docs/catalog.md             301
+/checkout.md            /api-docs/checkout.md            301
+/forms-and-extras.md    /api-docs/forms-and-extras.md    301
+/seo-and-tracking.md    /api-docs/seo-and-tracking.md    301
+/images-and-speed.md    /api-docs/images-and-speed.md    301
+/package.md             /api-docs/package.md             301
+/mcp-for-website.md     /api-docs/mcp-for-website.md     301
+/testing.md             /api-docs/testing.md             301
+/deploy-cloudflare.md   /api-docs/deploy-cloudflare.md   301
+/troubleshooting.md     /api-docs/troubleshooting.md     301
+/index.md               /api-docs/index.md               301
+/docs                   /api-docs/                       301
+/docs/*                 /api-docs/:splat                 301
+/quickstart             /api-docs/quickstart/            301
+/rules                  /api-docs/rules/                 301
+/checkout               /api-docs/checkout/              301
+/deploy-cloudflare      /api-docs/deploy-cloudflare/     301
+/troubleshooting        /api-docs/troubleshooting/       301

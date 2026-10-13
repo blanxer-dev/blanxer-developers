@@ -19,7 +19,7 @@ Products, variants, stock, categories, brands, search, sale and flash sales. All
 | Flash sales | `GET /public/flash-sale/<store_id>` | `{server_time, sales}` |
 | One product's flash sale | `GET /public/flash-sale/<store_id>/product/<product_id>` | `{server_time, sale, units}` |
 
-Categories are not an endpoint: they come with the store in `check_domain.categories` (see [Store and theme](https://developers.blanxer.com/store-and-theme.md)).
+Categories are not an endpoint: they come with the store in `check_domain.categories` (see [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md)).
 
 There is also `GET /product/public/barcode/<store_id>?code=<barcode>` (looks a product up by barcode). A custom site rarely needs it.
 
@@ -128,8 +128,8 @@ Every list endpoint (all products, page, category, search, sale, brand products,
 | `categories[]` | Category **ids** (match them against `check_domain.categories`) |
 | `brand` | `{_id, name, slug, logo}` or missing |
 | `tags[]` | See [Tags](#tags) |
-| `custom_fields` | Inputs the shopper fills; see [Checkout → Custom fields](https://developers.blanxer.com/checkout.md#custom-fields) |
-| `seo_title`, `seo_description`, `seo_image` | See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md) |
+| `custom_fields` | Inputs the shopper fills; see [Checkout → Custom fields](https://developers.blanxer.com/api-docs/checkout.md#custom-fields) |
+| `seo_title`, `seo_description`, `seo_image` | See [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md) |
 | `total_rating`, `review_count`, `reviews[]` | Reviews: `rating`, `review`, `images`, `customer_name`, `verified_purchase`, `created_at`, newest first |
 | `similar_products[]` | List items: Active only, but may include POS-only products; no `channel` |
 | `csrf_token` | Send with custom-field image uploads (accepted, but not checked by the server today) |
@@ -201,7 +201,7 @@ When `check_domain.use_advanced_inventory` is true and the store has a website o
 
 ### What to show
 
-- Out of stock: disable Add to cart and show the back-in-stock form when the store has it on. See [Forms and extras](https://developers.blanxer.com/forms-and-extras.md#back-in-stock-alerts).
+- Out of stock: disable Add to cart and show the back-in-stock form when the store has it on. See [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md#back-in-stock-alerts).
 - The `product_custom_options` plugin (in `check_domain.plugins`) can ask for stock display: `details.showProductStock` (show "N in stock") and `details.outOfStockBaseValue` (show a low-stock warning at or below that number).
 - The server makes the final check at order time, including units held in other shoppers' checkouts.
 
@@ -303,4 +303,4 @@ POST /public/flash-sale/<store_id>/notify
 
 ## Product images
 
-`image_urls` and variant `image_url` are absolute URLs on Blanxer's storage. Load them with `next/image` and the package's `blanxerImageLoader` so they are resized. Don't download product photos into the site (rule 11). See [Images and speed](https://developers.blanxer.com/images-and-speed.md).
+`image_urls` and variant `image_url` are absolute URLs on Blanxer's storage. Load them with `next/image` and the package's `blanxerImageLoader` so they are resized. Don't download product photos into the site (rule 11). See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md).

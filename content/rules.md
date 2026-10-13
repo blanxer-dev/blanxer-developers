@@ -37,6 +37,6 @@ These rules apply to every BlanxerAPI website. Read them before writing any code
 | 6 | The site is public code on the merchant's account. Anything in it is readable. The public API needs no key. |
 | 7 | Customer accounts are not part of BlanxerAPI. Custom sites use guest checkout. |
 | 10 | Blanxer's product feed and sitemap link to `/product/<slug>`, `/collections/<slug>` and `/brand/<slug>` on the site. Other paths turn every feed and sitemap link into a 404. |
-| 11 | Image weight is the main reason a store site is slow. See [Images and speed](https://developers.blanxer.com/images-and-speed.md). |
+| 11 | Image weight is the main reason a store site is slow. See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md). |
 | 12 | Page-builder tools change the Blanxer-hosted site, not the custom site. |
 | 13 | Bulk changes touch live store data shared with the Blanxer dashboard, POS and app. |

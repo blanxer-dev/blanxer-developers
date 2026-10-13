@@ -1,7 +1,7 @@
 # Cloudflare Pages headers. Agents fetch these files directly, often from tools
 # without a browser, so serve them as text and allow cross-origin reads.
 
-/*.md
+/api-docs/*.md
   Content-Type: text/markdown; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=300
@@ -20,3 +20,7 @@
   Content-Type: application/yaml; charset=utf-8
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=300
+
+# Conversions API relay (functions/api/meta.ts): never cached.
+/api/*
+  Cache-Control: no-store

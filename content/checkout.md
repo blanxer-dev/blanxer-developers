@@ -618,15 +618,15 @@ What the page shows:
 
 - With `?from=checkout`: "Congratulations! Your order has been placed successfully! Thank you for your purchase. You will receive a confirmation SMS or call soon."
 - The status and payment status, the lines, and the totals. If `partial_payment_amount > 0`, show it and "Cash on Delivery: total − partial".
-- **Cancel** when `status` is `Pending` or `Processing` and `checkout.extras.allow_customer_cancellation` is on. See [Forms and extras → Cancel an order](https://developers.blanxer.com/forms-and-extras.md#cancel-an-order).
-- **Review** per product when `status` is `Delivered` and the product isn't in `review.received`. See [Forms and extras → Review a product](https://developers.blanxer.com/forms-and-extras.md#review-a-product).
+- **Cancel** when `status` is `Pending` or `Processing` and `checkout.extras.allow_customer_cancellation` is on. See [Forms and extras → Cancel an order](https://developers.blanxer.com/api-docs/forms-and-extras.md#cancel-an-order).
+- **Review** per product when `status` is `Delivered` and the product isn't in `review.received`. See [Forms and extras → Review a product](https://developers.blanxer.com/api-docs/forms-and-extras.md#review-a-product).
 
 ## Meta events in the checkout
 
 - `InitiateCheckout` once, when the checkout has lines: `content_ids` (a variant line is `<product>_<variant>`, the same ids as the product feed), `content_type: 'product'`, `value` (the payable total), `currency: 'NPR'`, `num_items` (the number of unique content ids).
 - `Purchase`: `num_items` is the number of order lines. One `event_id` per order, sent in the order's `meta` block. COD: the server sends the CAPI Purchase and the browser fires the Pixel. Online: the success page fires both. Meta dedupes on `event_id`.
 
-Details: [SEO and tracking → Meta Pixel and Conversions API](https://developers.blanxer.com/seo-and-tracking.md#meta-pixel-and-conversions-api).
+Details: [SEO and tracking → Meta Pixel and Conversions API](https://developers.blanxer.com/api-docs/seo-and-tracking.md#meta-pixel-and-conversions-api).
 
 ## Testing without creating an order
 
@@ -635,7 +635,7 @@ On any store, an order with `customer_phone_number` `0000000000`, or a `customer
 - The body is validated first, so every other field must still be valid.
 - The response has no `_id`. The checkout must treat `success` without `_id` as a test response and stop: no payment start, no redirect.
 - It still counts toward the order rate limit (5 per 10 minutes per store and IP).
-- This tests the form, validation, delivery and coupon display. It can't test payments: there is no order to pay, so the gateway and QR screens are checked live (see [Testing](https://developers.blanxer.com/testing.md)).
+- This tests the form, validation, delivery and coupon display. It can't test payments: there is no order to pay, so the gateway and QR screens are checked live (see [Testing](https://developers.blanxer.com/api-docs/testing.md)).
 
 ## Not in v1
 

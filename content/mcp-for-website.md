@@ -109,5 +109,5 @@ The MCP's own confirmations still apply on top of this. Never invent product fac
 
   **Exception: blog post bodies.** `blanxer_create_blog_post` makes an empty post; write its body with `blanxer_add_section` / `blanxer_update_section` using `{ post_id }`. That is content the site shows (the post's `sections`), so use them for blog posts.
 - Don't use the MCP from the site's code, and don't put an MCP token anywhere.
-- Don't change `store_visibility` unless the merchant asks (see [Deploy → Retiring the old subdomain site](https://developers.blanxer.com/deploy-cloudflare.md#retiring-the-old-subdomain-site)).
+- Don't change `store_visibility` unless the merchant asks (see [Deploy → Retiring the old subdomain site](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#retiring-the-old-subdomain-site)).
 - Don't put product photos in the site's repo; upload them to Blanxer.

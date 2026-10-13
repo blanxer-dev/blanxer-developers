@@ -68,7 +68,7 @@ The order was sent with the coupon **code** (`"coupon": "DASHAIN10"`). The serve
 
 ### `Please choose a print for <name>`
 
-The product has a required print add-on, and the line has no `print_id`. The package has no print picker yet, so it can't sell that product. Ask the merchant to make the print optional, or leave the product off the site for now. See [Checkout → Print add-on products](https://developers.blanxer.com/checkout.md#print-add-on-products).
+The product has a required print add-on, and the line has no `print_id`. The package has no print picker yet, so it can't sell that product. Ask the merchant to make the print optional, or leave the product off the site for now. See [Checkout → Print add-on products](https://developers.blanxer.com/api-docs/checkout.md#print-add-on-products).
 
 ### `Either of the selected product is already deleted` / `... is out of stock`
 
@@ -100,7 +100,7 @@ Khalti's own error text is passed through (for example a minimum amount or a con
 
 ### A Draft or POS-only product page is visible
 
-`GET /product/public/<store_id>/<slug>` also returns non-Active (`Draft`, `Archived`) and POS-only products. The page must call `notFound()` unless `status === 'Active' && channel !== 3`; the package's `getProduct()` returns `null` for them. See [Catalog → One product](https://developers.blanxer.com/catalog.md#one-product).
+`GET /product/public/<store_id>/<slug>` also returns non-Active (`Draft`, `Archived`) and POS-only products. The page must call `notFound()` unless `status === 'Active' && channel !== 3`; the package's `getProduct()` returns `null` for them. See [Catalog → One product](https://developers.blanxer.com/api-docs/catalog.md#one-product).
 
 ### A product page shows "Product not found" as an error instead of a 404
 
@@ -149,7 +149,7 @@ The Workers free plan allows 3 MiB compressed. Tell the merchant before deployin
 - keep large libraries out of server components;
 - or move to the $5/month Workers paid plan (10 MiB).
 
-See [Deploy → Worker size](https://developers.blanxer.com/deploy-cloudflare.md#worker-size).
+See [Deploy → Worker size](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#worker-size).
 
 ### `wrangler` deploys to the wrong Cloudflare account
 
@@ -159,7 +159,7 @@ Run `npx wrangler whoami`. If it's not the merchant's account, `npx wrangler log
 
 ### Images too big / the image budget fails
 
-Every file in `public/` must be ≤ 300 KB and ≤ 2560 px wide, as AVIF/WebP, rendered with `next/image` and a size. Re-run `npx blanxer-storefront images` with the right export width for the slot (hero 2560, banner 1600, card 800). Never commit originals. Product photos belong in Blanxer, loaded through `blanxerImageLoader`. See [Images and speed](https://developers.blanxer.com/images-and-speed.md).
+Every file in `public/` must be ≤ 300 KB and ≤ 2560 px wide, as AVIF/WebP, rendered with `next/image` and a size. Re-run `npx blanxer-storefront images` with the right export width for the slot (hero 2560, banner 1600, card 800). Never commit originals. Product photos belong in Blanxer, loaded through `blanxerImageLoader`. See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md).
 
 ## `npx blanxer-storefront check` failures
 
@@ -170,5 +170,5 @@ Every file in `public/` must be ≤ 300 KB and ≤ 2560 px wide, as AVIF/WebP, r
 | `/customer/auth` or `/customer/account` call, or a login/account/wishlist/rewards page | Remove it (rule 7). Only `/customer/stock-alert` is allowed |
 | Order or payment call outside the browser | Move it into a client component; no server actions or route handlers for orders, coupons, payments, holds or stock alerts (rule 5) |
 | Image budget | See above |
-| No image marked as main (warning) | Add `preload` to each page's main (LCP) image. See [Images and speed](https://developers.blanxer.com/images-and-speed.md#loading-images) |
-| Lighthouse under 90 / LCP over 2.5 s | See [Images and speed → When the check fails](https://developers.blanxer.com/images-and-speed.md#when-the-check-fails) |
+| No image marked as main (warning) | Add `preload` to each page's main (LCP) image. See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md#loading-images) |
+| Lighthouse under 90 / LCP over 2.5 s | See [Images and speed → When the check fails](https://developers.blanxer.com/api-docs/images-and-speed.md#when-the-check-fails) |

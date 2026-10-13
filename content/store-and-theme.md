@@ -22,7 +22,7 @@ In the site: `getStore()` and `getStoreId()` from `@blanxer-dev/storefront/serve
 | `_id` | Store id |
 | `name`, `description`, `display_image` | Store name, one-line description, an image |
 | `sub_domain`, `custom_domain` | `mystore`, and the Blanxer custom domain if any |
-| `storefront_url` | The saved link to the custom site, `''` when none. See [Deploy → Link the site](https://developers.blanxer.com/deploy-cloudflare.md#link-the-site-to-blanxer). |
+| `storefront_url` | The saved link to the custom site, `''` when none. See [Deploy → Link the site](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#link-the-site-to-blanxer). |
 | `plan` | `''` (free), `pos`, `basic`, `premium`, `plus`, `platinum`. Online payments need `basic`, `premium`, `plus` or `platinum`. |
 | `customization` | Logo, name, theme colour, font, currency label, top bar, popup, hero images (below) |
 | `navigation`, `footer` | Menu items and footer content as set in Blanxer |
@@ -30,10 +30,10 @@ In the site: `getStore()` and `getStoreId()` from `@blanxer-dev/storefront/serve
 | `blog_categories[]` | `name`, `slug`, `image`, `order`, SEO fields |
 | `social` | `facebook`, `instagram`, `tiktok`, `whatsapp` |
 | `compliance` | Business details for the footer: `business_name`, `business_address`, `pan`, `registration_number`, `ecommerce_number`, `contact`, `email`, `complain_officer`, `permits`, `outlets`, `exim_code`. Show them only when `compliance.style === 'show'` |
-| `checkout` | Which checkout fields are on. See [Checkout → Fields](https://developers.blanxer.com/checkout.md#fields). |
-| `addons`, `setting` | Payment add-ons, and store settings. The payment-credential keys in `setting` are masked to `'yes'` / `''`; other keys (delivery settings and more) come as stored. See [Checkout → Payment methods](https://developers.blanxer.com/checkout.md#payment-methods). |
+| `checkout` | Which checkout fields are on. See [Checkout → Fields](https://developers.blanxer.com/api-docs/checkout.md#fields). |
+| `addons`, `setting` | Payment add-ons, and store settings. The payment-credential keys in `setting` are masked to `'yes'` / `''`; other keys (delivery settings and more) come as stored. See [Checkout → Payment methods](https://developers.blanxer.com/api-docs/checkout.md#payment-methods). |
 | `plugins[]` | `{name, details}`: tracking tags and small features (below) |
-| `use_advanced_inventory` | Stock is per outlet. See [Catalog → Stock](https://developers.blanxer.com/catalog.md#stock). |
+| `use_advanced_inventory` | Stock is per outlet. See [Catalog → Stock](https://developers.blanxer.com/api-docs/catalog.md#stock). |
 | `customer_program` | `{enabled, loyalty_enabled, membership_enabled, back_in_stock: {enabled}, login}` |
 | `under_construction` | `off`, `sub`, `cus` or `both`. Controls the **Blanxer-hosted** site only. Ignore it in a custom site. |
 | `kyc_status`, `blanxer_pay`, `loyalty`, `current_template` | Not needed by a custom site |
@@ -144,7 +144,7 @@ const font = Poppins({ subsets: ['latin'], weight: ['400', '600'], display: 'swa
 
 | `name` | `details` | Use |
 |---|---|---|
-| `meta_tags` | `[{n, c}]`: `<meta name={n} content={c}>` | Search Console verification and other verification tags. See [SEO and tracking](https://developers.blanxer.com/seo-and-tracking.md#search-console-verification). |
+| `meta_tags` | `[{n, c}]`: `<meta name={n} content={c}>` | Search Console verification and other verification tags. See [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md#search-console-verification). |
 | `ga` | `"G-XXXXXXXXXX"` | Google Analytics 4 |
 | `gtm` | `"GTM-XXXXXXX"` | Google Tag Manager |
 | `fb_pixel` | Pixel id | Meta Pixel |
@@ -161,11 +161,11 @@ Most delivery-partner plugins are removed from this payload. Treat any other plu
 
 ## Product fields for the product page
 
-Besides the catalog fields (see [Catalog](https://developers.blanxer.com/catalog.md#one-product)), the product response has:
+Besides the catalog fields (see [Catalog](https://developers.blanxer.com/api-docs/catalog.md#one-product)), the product response has:
 
 - `color_name` and `size_name`: the labels for the two option pickers. Defaults: "Choose Variant" and "Choose Size".
 - Colour swatches only when a colour carries a code (`"Maroon:#7a1f2b"`); otherwise show the name.
-- `print_addon`: the print add-on, which the package can't sell yet (see [Checkout → Print add-on products](https://developers.blanxer.com/checkout.md#print-add-on-products)).
+- `print_addon`: the print add-on, which the package can't sell yet (see [Checkout → Print add-on products](https://developers.blanxer.com/api-docs/checkout.md#print-add-on-products)).
 - `desc_page` (also on categories and brands): a page-builder description block for the Blanxer-hosted site. A custom site uses the HTML `description` / `long_description` instead.
 - `categories[].hide_on_product` (in `check_domain`): don't list that category on product pages.
 
