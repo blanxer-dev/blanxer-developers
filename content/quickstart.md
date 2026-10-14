@@ -15,7 +15,7 @@ Read [the 13 hard rules](https://developers.blanxer.com/api-docs/rules.md). In s
 Install the agent tools:
 
 - **Claude Code skill:** `/plugin marketplace add blanxer-dev/blanxer-agent-skills` then `/plugin install blanxer-website@blanxer`
-- **Blanxer MCP:** `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp` (the merchant signs in to Blanxer in the browser)
+- **Blanxer MCP:** `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp` (the merchant signs in to Blanxer in the browser). Do this **first**, before any other work: Claude Code only loads a newly added MCP server when it starts. See step 1 for restarting without losing the conversation (`claude -c`).
 - **Cursor, Codex, claude.ai:** add `https://mcp.blanxer.com/mcp` as a remote MCP server. See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md). The starter's `AGENTS.md` holds the same procedure as the skill.
 
 ## Three channels, three jobs
@@ -32,7 +32,14 @@ The site never holds a key and never talks to the MCP.
 
 Confirm each step with the merchant before moving on.
 
-### 1. Find the store and connect
+**Keep a progress file.** As soon as the site's folder exists, keep `BLANXER-PROGRESS.md` in it: the store, the design brief, what's decided and the step you're on. Update it after every step. If a session starts without the earlier conversation (the merchant restarted, or says "let's continue the website"), read it first and carry on from there instead of starting over.
+
+### 1. Connect the Blanxer MCP first, then find the store
+
+- **Before anything else, make sure the Blanxer MCP is connected**, so the merchant never has to restart in the middle of the work:
+  - **Its tools (`blanxer_…`) are already there:** if they need a sign-in, the merchant runs `/mcp`, picks `blanxer` and signs in to Blanxer in the browser. No restart.
+  - **Not there:** add it: `claude mcp add --transport http blanxer https://mcp.blanxer.com/mcp`, or install the skill (`/plugin marketplace add blanxer-dev/blanxer-agent-skills`, then `/plugin install blanxer-website@blanxer`). **Claude Code only loads a new MCP server when it starts**, so ask the merchant to restart **now**, while nothing is lost: type `/exit`, then run `claude -c` from the same folder Claude Code was started in. `claude -c` reopens this same conversation with its history. Give them the exact line (`cd <that folder> && claude -c`). Then `/mcp` → `blanxer` → sign in.
+  - **Other agents:** Codex resumes with `codex resume --last`. Cursor, Gemini CLI and claude.ai: add `https://mcp.blanxer.com/mcp` as a remote MCP server. If the tool needs a restart, write `BLANXER-PROGRESS.md` first.
 
 Look the store up by subdomain (or custom domain):
 
@@ -50,11 +57,17 @@ Show the merchant:
 - **Free plan** (`plan` not one of `basic`, `premium`, `plus`, `platinum`): the checkout is Cash on Delivery only;
 - **Store with customer login turned on** (`customer_program.enabled`): the custom site still uses guest checkout. BlanxerAPI has no login.
 
-Then connect the Blanxer MCP, have the merchant sign in, and run `blanxer_audit_seo`. Also check the catalog for products with no photo, no price, no category or no SEO text. Show the gaps.
+Then run `blanxer_audit_seo` (the MCP is already connected from the start of this step). Also check the catalog for products with no photo, no price, no category or no SEO text. Show the gaps.
 
-### 2. Design brief
+### 2. Design brief (ask, don't copy)
 
-Ask for reference sites, the look, the pages and the tone. Use the store's logo, colours and font as defaults (`customization.brand_logo`, `customization.theme`, `customization.font`).
+**Ask the merchant before you design anything:**
+- 2–3 websites whose look they like (links or screenshots), or "something like <brand>";
+- colours and mood, the pages they need, the tone, and any must-haves.
+
+No references? Offer 3 short, clearly different style directions and let them pick.
+
+**Don't copy their current Blanxer-hosted storefront** (its layout, its sections, or `blanxer_get_site_design`). They are building a new site because they want something different. Reuse it only if they ask to keep their current look. Offer the store's logo, colours (`customization.theme`) and font (`customization.font`) as defaults, not as the design. Agree on a short page list and write the brief into `BLANXER-PROGRESS.md` before building.
 
 ### 3. Scaffold from the starter
 

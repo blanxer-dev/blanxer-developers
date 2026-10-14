@@ -23,7 +23,7 @@ These rules apply to every BlanxerAPI website. Read them before writing any code
     - **Product photos go into Blanxer through the MCP, never into the site.**
     - No autoplay video backgrounds or GIF banners unless the merchant insists after hearing the speed cost.
     - Fonts go through `next/font`, at most 2 families.
-12. **The site's design lives in the site.** Don't use MCP page-builder tools for a custom site. Use the MCP only for store data.
+12. **The site's design lives in the site.** Don't use MCP page-builder tools for a custom site. Use the MCP only for store data. **The design comes from the merchant's brief** (step 2): ask for reference sites first, and don't copy the Blanxer-hosted storefront unless they ask.
 13. **Confirm before bulk store changes.** Show the list (SEO for many products, imports, delivery charges) and get a yes. The MCP's own confirmations still apply.
 
 ## Why these rules exist

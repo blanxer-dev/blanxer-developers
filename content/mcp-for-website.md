@@ -21,6 +21,8 @@ Or install the skill, which brings the MCP with it:
 
 Then run `/mcp`, pick `blanxer` and sign in.
 
+**Connect it first, before any other work.** Claude Code only loads a newly added MCP server when it starts. If you add it during a conversation, the merchant has to restart. Do it straight away, while nothing is lost: type `/exit`, then run `claude -c` **from the same folder** Claude Code was started in. `claude -c` reopens the same conversation with its history; a plain `claude` starts a new, empty one. Signing in through `/mcp` to a server that is already added needs no restart. Codex resumes with `codex resume --last`.
+
 **Cursor**: add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json`:
 
 ```json
