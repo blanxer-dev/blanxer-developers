@@ -6,6 +6,8 @@ The merchant's prompt usually is: "Build my Blanxer store website in Next.js and
 
 Start with https://developers.blanxer.com/api-docs/quickstart.md and follow its steps in order, confirming each with the merchant. The merchant tells you their store's subdomain (`<subdomain>.blanxer.io`).
 
+Before anything else: make sure the Blanxer MCP is connected. If you have to add it, ask the merchant to restart right away. Claude Code only loads a new MCP server when it starts: they type `/exit`, then run `claude -c` from the same folder, which reopens this conversation. Then design from the merchant's brief: ask for 2–3 reference sites or screenshots first, and don't copy their current Blanxer-hosted storefront unless they ask. Keep `BLANXER-PROGRESS.md` in the site's folder (store, brief, decisions, current step), and read it first if a session starts without the earlier conversation.
+
 Hard rules (full text: https://developers.blanxer.com/api-docs/rules.md):
 
 1. Next.js only: TypeScript, App Router.
@@ -19,7 +21,7 @@ Hard rules (full text: https://developers.blanxer.com/api-docs/rules.md):
 9. Payment methods come from the store's settings via the package; never add or remove them by hand.
 10. Use the paths /product/[slug], /collections/[slug], /brand/[slug]. Don't build a product feed or catalog sitemap; Blanxer serves both.
 11. Optimise every image (npx blanxer-storefront images: AVIF + WebP, hero 2560 px, banner 1600, card 800, no EXIF), load with next/image, product photos go into Blanxer via the MCP, at most 2 fonts via next/font.
-12. The site's design lives in the site: don't use the MCP page-builder tools.
+12. The site's design lives in the site: don't use the MCP page-builder tools. The design comes from the merchant's brief: ask for reference sites first; don't copy the Blanxer-hosted storefront unless asked.
 13. Confirm with the merchant before bulk store changes.
 
 Install:
