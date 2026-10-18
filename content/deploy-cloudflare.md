@@ -133,7 +133,7 @@ The switch only affects the Blanxer-hosted pages. The API, and so the custom sit
 2. `./node_modules/.bin/next build` and `npx blanxer-storefront check`.
 3. `./node_modules/.bin/opennextjs-cloudflare build && ./node_modules/.bin/opennextjs-cloudflare deploy`.
 
-Store data changes (products, prices, stock, SEO text, delivery charges, coupons) need **no** redeploy. They show on the site within about a minute.
+Store data changes (products, prices, stock, SEO text, delivery charges, offers, coupons) need **no** redeploy. They show on the site within about a minute.
 
 ## Hand-over
 

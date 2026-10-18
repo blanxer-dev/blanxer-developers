@@ -29,7 +29,11 @@ const sharedFaqs = (name: string): Faq[] => [
   },
   {
     q: "Will eSewa, Khalti and Cash on Delivery work?",
-    a: "Yes. The website uses Blanxer's own checkout, so eSewa, Khalti, Fonepay, NPX, cards and Cash on Delivery work exactly like on your Blanxer store, with your delivery charges and coupons.",
+    a: "Yes. The website uses Blanxer's own checkout, so eSewa, Khalti, Fonepay, NPX, cards and Cash on Delivery work exactly like on your Blanxer store, with your delivery charges, offers and discount codes.",
+  },
+  {
+    q: "Will my offers and discount codes work on the new website?",
+    a: "Yes. Discount codes, automatic discounts, buy more save more, buy one get one, free gifts, bundles and free delivery that you set up in Blanxer show on the website and are priced by Blanxer at checkout. New offers appear on the site without a redeploy.",
   },
   {
     q: "How much does it cost?",

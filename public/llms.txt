@@ -14,7 +14,7 @@ Hard rules (full text: https://developers.blanxer.com/api-docs/rules.md):
 2. Start from blanxer-storefront-starter and keep @blanxer-dev/storefront. Restyle the checkout; never rewrite payment, delivery, coupon or order logic, never call payment endpoints directly. The checkout always shows "Checkout Powered by Blanxer" ("Blanxer" links to https://blanxer.com) under the place-order button: restyle it via `.bx-powered-by`, never remove or hide it.
 3. Required routes at these exact paths: /checkout, /payment/success, /payment/failed, /track/[id].
 4. Send the site's own origin as `url`; never hardcode it.
-5. Orders, coupons, payment starts, hold release, back-in-stock, forms, cancel and review run in the browser only.
+5. Orders, coupons, the offers cart quote, payment starts, hold release, back-in-stock, forms, cancel and review run in the browser only.
 6. No secrets in the site (no sk_ key, MCP token, login or gateway key). Never ask the merchant for a key.
 7. No customer login: no /customer/auth calls, no account, login, wishlist or rewards pages.
 8. Don't invent data: prices, stock, delivery and payment methods come only from the API.
@@ -22,7 +22,8 @@ Hard rules (full text: https://developers.blanxer.com/api-docs/rules.md):
 10. Use the paths /product/[slug], /collections/[slug], /brand/[slug]. Don't build a product feed or catalog sitemap; Blanxer serves both.
 11. Optimise every image (npx blanxer-storefront images: AVIF + WebP, hero 2560 px, banner 1600, card 800, no EXIF), load with next/image, product photos go into Blanxer via the MCP, at most 2 fonts via next/font.
 12. The site's design lives in the site: don't use the MCP page-builder tools. The design comes from the merchant's brief: ask for reference sites first; don't copy the Blanxer-hosted storefront unless asked.
-13. Confirm with the merchant before bulk store changes.
+13. Offers: on a store with Blanxer's Offers plugin, every price, saving, gift line and code result comes from the server's quote (POST /public/promotions/:store_id/quote). Never compute a discount; never send gift lines (added_by) back. Stores without Offers keep the coupon flow.
+14. Confirm with the merchant before bulk store changes.
 
 Install:
 
@@ -32,21 +33,21 @@ Install:
 ## Guides
 
 - [Quickstart](https://developers.blanxer.com/api-docs/quickstart.md): the 12-step procedure from store lookup to live site; start here
-- [The 13 hard rules](https://developers.blanxer.com/api-docs/rules.md): the rules every BlanxerAPI site follows, and why
+- [The 14 hard rules](https://developers.blanxer.com/api-docs/rules.md): the rules every BlanxerAPI site follows, and why
 - [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md): check_domain fields, logo, theme colours, font, menus, plugins
 - [Catalog](https://developers.blanxer.com/api-docs/catalog.md): products, variants (option_name, variant _id), stock rules, categories, brands, search, sale, flash sales
-- [Checkout](https://developers.blanxer.com/api-docs/checkout.md): every field and limit, delivery charges and COD per place, coupons, the order request, each payment flow, stock holds, the three required pages
+- [Checkout](https://developers.blanxer.com/api-docs/checkout.md): every field and limit, delivery charges and COD per place, Offers (GET /public/promotions, the cart quote, code on the order), coupons, the order request, each payment flow, stock holds, the three required pages
 - [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md): custom forms, back-in-stock alerts, order cancel and review, blog
 - [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md): server-built sitemap and feed, sitemap index, robots, metadata, JSON-LD, Search Console, GA/GTM, Meta Pixel and CAPI
 - [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md): rule 11 in full, image sizes per slot, product image loader, fonts, Lighthouse ≥ 90 and LCP < 2.5 s
-- [Package](https://developers.blanxer.com/api-docs/package.md): the @blanxer-dev/storefront entry points, theming, the "Checkout Powered by Blanxer" line, and the check/images CLI (see the package README for the released API)
+- [Package](https://developers.blanxer.com/api-docs/package.md): the @blanxer-dev/storefront entry points, theming, the "Checkout Powered by Blanxer" line, Offers hooks and components (useOffers, useCartQuote, 0.2.0), and the check/images CLI (see the package README for the released API)
 
 ## Store data and shipping
 
-- [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md): connecting the Blanxer MCP, which tools to use while building, blanxer_set_storefront_url, what not to touch
-- [Testing](https://developers.blanxer.com/api-docs/testing.md): the 0000000000 test order, the sandbox store, the live check
+- [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md): connecting the Blanxer MCP, which tools to use while building, launch offers (blanxer_create_offer and the other offer tools), blanxer_set_storefront_url, what not to touch
+- [Testing](https://developers.blanxer.com/api-docs/testing.md): the 0000000000 test order, checking offers in the cart, the sandbox store, the live check
 - [Deploy to Cloudflare](https://developers.blanxer.com/api-docs/deploy-cloudflare.md): OpenNext, wrangler login on the merchant's account, the 3 MiB limit, linking the site, custom domain, retiring the subdomain
-- [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md): 404 after payment, place not found, COD refused, coupon ignored, 3 MiB, images, check failures
+- [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md): 404 after payment, place not found, COD refused, coupon ignored, discount code rejected (every reason), quote 429, page price differs from the order, 3 MiB, images, check failures
 
 ## Reference
 

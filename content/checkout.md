@@ -1,16 +1,16 @@
 # Checkout
 
-> **Use `@blanxer-dev/storefront`'s `Checkout` component. This page documents what it does.** Restyle it with theme props, CSS variables and wrappers (rule 2). Don't rewrite the payment, delivery, coupon or order logic, and don't call payment endpoints yourself. You need this page to theme the checkout safely, to debug it, and to explain it to the merchant.
+> **Use `@blanxer-dev/storefront`'s `Checkout` component. This page documents what it does.** Restyle it with theme props, CSS variables and wrappers (rule 2). Don't rewrite the payment, delivery, coupon, offer or order logic, and don't call payment endpoints yourself. You need this page to theme the checkout safely, to debug it, and to explain it to the merchant.
 
-The checkout behaves like the Blanxer-hosted storefront's checkout (storefront `main` at `cabd695`): the same fields, delivery places and charges, coupons, payment methods, stock holds, flash-sale limits and tracking. Where the package differs from the hosted storefront, this page says so. The hosted storefront also has a few store-specific checkout variants; the package doesn't port them.
+The checkout behaves like the Blanxer-hosted storefront's checkout (storefront `main` at `cabd695`): the same fields, delivery places and charges, offers and coupons, payment methods, stock holds, flash-sale limits and tracking. Where the package differs from the hosted storefront, this page says so. The hosted storefront also has a few store-specific checkout variants; the package doesn't port them.
 
-The server re-checks the order. Prices, stock, delivery charges, COD and coupons are recomputed on the server; what the browser shows is a preview. Two things are taken from the request as sent: each line's `customization_charge` and its custom-field values.
+The server re-checks the order. Prices, stock, delivery charges, COD, offers and coupons are recomputed on the server; what the browser shows is a preview. Two things are taken from the request as sent: each line's `customization_charge` and its custom-field values.
 
 ## The flow at a glance
 
 1. The page loads the store (`check_domain`) on the server. The delivery table is loaded on the server when you pass it to `Checkout` as `delivery` (the starter does); without it, the package fetches it in the browser.
-2. The shopper fills the form, picks a delivery place and a payment method, and may apply a coupon.
-3. The browser sends `POST /order/<store_id>` with the cart lines, the form, the payment method, the coupon `_id` and `url` = the site's own origin.
+2. The shopper fills the form, picks a delivery place and a payment method, and may enter a discount code. On a store with [Offers](#offers), the cart and checkout show the server's quote.
+3. The browser sends `POST /order/<store_id>` with the cart lines, the form, the payment method, the code (Offers: `code`; older stores: the coupon `_id`) and `url` = the site's own origin.
 4. The API creates the order. COD orders are `Pending` and stock is reduced at once. Online orders are `Inactive` and their units are held while the shopper pays.
 5. **COD:** the browser goes to `/track/<order_id>?from=checkout`.
    **Redirect gateways** (eSewa, Khalti, FonePay, NPX, Nabil card): the browser starts the payment and leaves for the gateway. The gateway returns to the API, and the API redirects to `<url>/payment/success` or `<url>/payment/failed`.
@@ -49,7 +49,7 @@ interface CartLine {
 ```
 
 - **Line id:** `${product}_${variant}`. Adding the same product and variant again adds to that line's quantity, even when the custom-field values differ; the line keeps its first values. Only team-order adds (`addManyToCart`) give each line with custom fields its own id. The hosted storefront also gives print lines their own id (`_${printId}` appended).
-- **Storage keys** match the hosted storefront (`cart_items`, `cart_selection`, `promo_code`, `checkout_order_id`, `pixel_purchase_pending`), except back-in-stock: the package uses `stock_alerts`, the hosted storefront `bx_stock_alerts`.
+- **Storage keys** match the hosted storefront (`cart_items`, `cart_selection`, `promo_code`, `checkout_order_id`, `pixel_purchase_pending`), except back-in-stock: the package uses `stock_alerts`, the hosted storefront `bx_stock_alerts`. On Offers stores the package also keeps the shopper's removed offers and gift picks in `bx_offer_choices`.
 
 ## Fields
 
@@ -166,7 +166,164 @@ In this order:
 - The server also saves the method as the customer's `preferred_payment_method`, for guests too.
 - The server rejects COD for a place without COD: `Cash on delivery is not available for the selected delivery location`.
 
+## Offers
+
+Stores with Blanxer's **Offers** plugin have automatic discounts, discount codes, buy more save more, buy X get Y, bundles, free gifts and free delivery. Every plan can turn it on. On these stores **the server prices the cart**: the site sends the lines and shows the server's quote. It never computes a discount itself (rule 13). The package's `CartView` and `Checkout` do all of this; this section documents what they do.
+
+Stores without Offers keep the coupon flow in the next section. A site must handle both.
+
+### Is the store on Offers?
+
+```http
+GET /public/promotions/<store_id>
+```
+
+```json
+{
+  "success": true,
+  "enabled": true,
+  "data": [
+    { "id": "6712a0c1d2e3f4a5b6c7d801", "title": "Free delivery over Rs 3,000", "description": "",
+      "kind": "free_delivery", "method": "automatic", "code": null, "state": "live",
+      "starts_at": null, "ends_at": "2026-10-31T18:14:59.999Z", "channels": ["web", "pos", "manual"],
+      "display": { "public": true, "badge": "", "top_bar": true, "offers_page": true, "countdown": true },
+      "conditions": { "min_amount": 3000, "min_qty": null, "payment": "any", "places": [], "customers": "everyone" },
+      "skip_on_sale": false, "free_delivery": { "value_type": "percent", "value": 100 } }
+  ],
+  "settings": { "badges": true, "code_field": true, "cart_progress": true },
+  "server_time": "2026-10-18T09:00:00.000Z"
+}
+```
+
+- `enabled: false` (with `data: []` and `settings: {}`): the store isn't on Offers. Use [Coupons](#coupons).
+- `data`: the public offers that are live or start within 30 days, for the website (`channels` has `web`), highest priority first, at most 100. `kind` is `amount_off`, `free_delivery`, `tiers` (buy more, save more), `bxgy` (buy X get Y), `bundle` or `gift`; the offer carries the matching object (`amount_off`, `tiers`, ...). `method` is `automatic` or `code`. `code` is only filled for a public code offer. `state` is `live` or `scheduled`.
+- Never listed: personal codes (loyalty and retention), offers for chosen customers, hidden offers (`display.public: false`), usage counts and limits.
+- `settings`: the store's display settings for offers: `badges`, `badge_style`, `badge_corner`, `saving_as`, `colors`, `pdp_tiers`, `pdp_notes`, `pdp_bundle`, `pdp_delivery`, `cart_progress`, `cart_upsell`, `cart_savings`, `code_field`, `top_bar`, `offers_page`, `countdowns`. A missing key means the default. The package's offer components follow them.
+- `server_time`: count down from it, not from the device clock.
+- An API without Offers yet answers 404: treat that as `enabled: false` (the package does).
+- This endpoint is live (not cached by the API). `check_domain` also has the plugin (`plugins[]`, `name: 'offers'`, `details.enabled` and `details.display`), but the site caches that; the live state is this endpoint.
+
+`GET /public/promotions/<store_id>/product/<product_id>` answers the same, with only the offers that touch that product: offers on it or its categories, plus store-wide ones (order discounts, free delivery, gifts). Use it for badges and product-page blocks. An unknown product is HTTP 400 `Product not found`.
+
+### The quote
+
+The cart priced by the server. Call it from the browser when the lines, code, place, payment method or phone change.
+
+```http
+POST /public/promotions/<store_id>/quote
+Content-Type: application/json
+
+{
+  "products": [{ "product": "66f1c0ffee0000000000aa01", "variant": "66f1c0ffee0000000000bb07", "quantity": 2 }],
+  "code": "DASHAIN5",
+  "place": "Pokhara",
+  "payment": "cod",
+  "phone": "9800000000",
+  "removed_offers": [],
+  "gift_choices": {}
+}
+```
+
+| Field | Rule |
+|---|---|
+| `products` | 1–100 lines, `quantity` a whole number 1–1000. Only what the shopper picked: **never send a line the server added** (`added_by`) |
+| `code` | Optional, at most 40 characters. Trimmed and upper-cased by the server. **One code per order** |
+| `place` | The delivery place name. The server works out the delivery charge from it and the lines' weights. Without it, delivery is unknown and a free-delivery offer shows as `pending` |
+| `payment` | `cod`, `online`, or `null` while none is picked |
+| `phone` | The shopper's 10-digit phone, once typed. Once-per-customer codes and first-order offers need it |
+| `removed_offers` | Ids of automatic offers the shopper took off (for example a gift they don't want), at most 20 |
+| `gift_choices` | `{ "<offer id>": "<product_id>\|<variant_id>" }`: the gift the shopper picked, for a gift offer with several gifts |
+
+A line whose product isn't Active in this store, or whose variant doesn't exist, is left out of the quote without an error (the order would refuse it).
+
+Response:
+
+```json
+{
+  "success": true,
+  "enabled": true,
+  "data": {
+    "lines": [
+      { "key": "l0", "product_id": "66f1c0ffee0000000000aa01", "variant_id": "66f1c0ffee0000000000bb07",
+        "name": "Cotton Kurta", "variant_name": "Blue/M", "image_url": "https://...",
+        "unit_price": 2000, "qty": 2, "gross": 4000,
+        "allocations": [{ "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "amount": 400 },
+                        { "promotion_id": "6712a0c1d2e3f4a5b6c7d803", "amount": 180 }],
+        "promo_discount": 580, "net": 3420, "free_qty": 0 },
+      { "key": "offer:6712a0c1d2e3f4a5b6c7d804:66f1c0ffee0000000000aa09:", "product_id": "66f1c0ffee0000000000aa09",
+        "variant_id": null, "name": "Lokta Notebook", "unit_price": 250, "qty": 1, "gross": 250,
+        "allocations": [{ "promotion_id": "6712a0c1d2e3f4a5b6c7d804", "amount": 250 }],
+        "promo_discount": 250, "net": 0, "free_qty": 1, "added_by": "6712a0c1d2e3f4a5b6c7d804" }
+    ],
+    "applications": [
+      { "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "title": "Buy 2 Kurtas, save 10%", "kind": "tiers", "class": "product",
+        "method": "automatic", "code": null, "amount": 400, "detail": { "tier": { "min": 2, "value_type": "percent", "value": 10 } } },
+      { "promotion_id": "6712a0c1d2e3f4a5b6c7d804", "title": "Free notebook over Rs 3,000", "kind": "gift", "class": "product",
+        "method": "automatic", "code": null, "amount": 250 },
+      { "promotion_id": "6712a0c1d2e3f4a5b6c7d803", "title": "Dashain 5% off", "kind": "amount_off", "class": "order",
+        "method": "code", "code": "DASHAIN5", "amount": 180 },
+      { "promotion_id": "6712a0c1d2e3f4a5b6c7d801", "title": "Free delivery over Rs 3,000", "kind": "free_delivery",
+        "class": "delivery", "method": "automatic", "code": null, "amount": 150 }
+    ],
+    "code": { "code": "DASHAIN5", "status": "applied", "message": "DASHAIN5 applied" },
+    "delivery": { "before": 150, "discount": 150, "after": 0, "promotion_id": "6712a0c1d2e3f4a5b6c7d801" },
+    "totals": { "gross": 4250, "product_discount": 650, "order_discount": 180, "promo_discount": 830,
+                "goods": 3420, "delivery": 0, "total": 3420 },
+    "messages": [
+      { "type": "upsell", "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "kind": "tiers",
+        "text": "Add 1 more to get 15% off — Buy 2 Kurtas, save 10%",
+        "data": { "remaining_qty": 1, "next": { "min": 3, "value_type": "percent", "value": 15 } } }
+    ],
+    "server_time": "2026-10-18T09:00:00.000Z"
+  }
+}
+```
+
+- **`lines`**: every line with its offers. `allocations` says which offer took how much off the line; `net` = `gross` − `promo_discount`. A line with `added_by` (the offer's id) was **added by the server**: a gift or a free item. Show it (with "Free" when `net` is 0), and never send it back in a quote or an order; the server adds it again. `free_qty` is how many of the line's units are free. Match lines to the cart by `product_id` and `variant_id`.
+- **`applications`**: one row per offer used. `class` is `product`, `order` or `delivery`. `detail` says what it gave, when there is something to show: the tier reached, the number of sets, the gift, the free units.
+- **`code`**: `null` when no code was sent. Otherwise `status` `applied` or `rejected`, a `reason` when rejected, and the `message` to show under the code field (reasons and messages: [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md#a-discount-code-is-rejected)).
+- **`delivery`**: the charge `before` and `after` the delivery offer, and the `discount`. `before` and `after` are `null` until the place is known; `pending: true` means a free-delivery offer or code applies once the place is picked.
+- **`totals`**: `goods` = `gross` − `promo_discount`; `total` = `goods` + delivery. **Customization charges are not in the quote:** add the lines' `customization_charge × quantity` to `total`, as the package does. Show these numbers; don't add up the lines yourself.
+- **`messages`**: the server's sentences. `type` is `upsell` ("Add 1 more ..."), `eligible` ("Add your free gift — ..."), `rejected` (the code's message again) or `info` (for example `The free <name> is out of stock`). Show `text` as is. `data` has the numbers for a progress bar: `remaining_amount` and `threshold` (an amount to reach), `remaining_qty`, `next` (the next tier), `free_missing`, `missing` (bundle items).
+- A quote for a store that isn't on Offers answers `{"success": true, "enabled": false}` with no `data`.
+- **Rate limit:** 300 quotes per 10 minutes per IP, then HTTP 429 with a plain-text body. Debounce (the package waits a moment after the last change), quote only when something changed, and drop answers to older requests.
+- A quote holds nothing: no stock, no use of a code.
+
+Rules the server follows (for explaining a quote to the merchant, not for computing it):
+
+- Product offers first, then order offers and the code on the reduced subtotal, then delivery.
+- Each unit gets at most one product offer. Offers combine only when both allow it; when two clash, the shopper gets the bigger saving. A code that loses this way is `rejected` with a message that says so.
+- Minimums and tiers count the products' prices before discounts, without delivery, customization or the gift itself.
+- Amounts are rounded down to the whole rupee.
+- The engine never touches stock. A gift or free item that is out of stock at the selling outlet (advanced inventory) or in the product's quantity (simple inventory) isn't added; the cart says so and the checkout still works. Units the server adds are held and taken from stock like paid units.
+
+### The order on an Offers store
+
+The order request takes three more fields (see [The order request](#the-order-request)):
+
+| Field | What |
+|---|---|
+| `code` | The code the shopper typed, or `''`. At most 40 characters, any case |
+| `removed_offers` | The same list as in the quote |
+| `gift_choices` | The same object as in the quote |
+
+- Send `coupon: ''`. (An older site that still sends a coupon `_id` keeps working: the server turns it into that offer's code.)
+- Send only the shopper's lines. **Never send lines with `added_by`**; the server prices the order again and adds gifts and free items itself.
+- **A rejected code fails the order** with HTTP **401** `{"fields":{"code":"<message>"}}`, the same message as the quote's `code.message`. Show it under the code field. The package sends the code only when the last quote applied it.
+- An offer whose last use was taken by another order in the meantime fails the order with HTTP 400 `{message}`: `"<offer title>" has just been fully used. Please review your order.`, `The code <CODE> has just been fully used. Please review your order.` or `You've already used "<offer title>".` Quote again and let the shopper review the new price.
+- A use of an offer or code is claimed with the order and given back when the order is cancelled or returned, its online payment fails, or its unpaid checkout expires.
+- The response adds `offers`: `{ applications, code, totals }` from the order's own pricing. `total_price` already has the offers taken off (product and order offers are inside `discount.d_value`), and a free-delivery offer lowers `delivery_charge`.
+- A test order (phone `0000000000`) stops before the code is checked. Use the quote to see a code's result.
+
+The tracking page (`GET /order/public/<store_id>/id/<order_id>`) returns the order's offers: `promotions[]` (`promotion_id`, `code`, `title`, `kind`, `class`, `method`, `amount`, `detail`), `promo_total`, `delivery_charge_before_promo`, and per line `promo_discount`, `promo_allocations` and `free_qty`. Older orders have none of these; show their `discount.d_value` as one discount row.
+
+### `?promo=` on an Offers store
+
+The stored `promo_code` becomes the quote's `code`. The package upper-cases it and clears it, with the removed offers and gift picks, after an order is placed.
+
 ## Coupons
+
+The coupon flow, for stores **not** on Offers (`enabled: false` above). The package switches between the two by itself.
 
 ### Applying a code
 
@@ -196,10 +353,12 @@ Response:
 }
 ```
 
-- The code lookup is exact (case-sensitive). The package and the hosted storefront upper-case what the shopper types.
+- Codes are not case-sensitive: the server trims and upper-cases the code (`dashain10 ` finds `DASHAIN10`). A coupon saved before codes were upper-cased is still found by its exact spelling.
 - The promo code box shows only when `store.plan` is set (not on the free plan).
+- **Rate limit:** 40 calls per 10 minutes per IP, then HTTP 429 with a plain-text body. Call it when the shopper presses Apply, never on every keystroke.
 - Errors are HTTP 400 `{message}`: `Coupan not found` (sic), `Coupon is inactive`, `All the available coupons have been used.`, `Coupon code not available` (not started yet), `Coupon code is expired`, `Cart must not be empty`, `Coupon is not applicable to any products` (category-restricted coupon, no matching product).
-- **Each successful apply holds one use of the coupon for about 12 seconds.** That matters only for a coupon with a usage limit: on its last use, an order placed within ~12 seconds of Apply can fail with `All the available coupons have been used.` Call it when the shopper presses Apply, never on every keystroke.
+- **Applying holds nothing.** A use is claimed only when the order is created, inside the same transaction, and given back once if the order is cancelled, its online payment fails or its unpaid checkout expires (it is claimed again if the order is re-opened or paid late). When two shoppers race for a coupon's last use, one order goes through and the other fails with `This coupon has just been used up`.
+- **Retention codes** (the codes Blanxer sends by SMS to bring a customer back) work only for the phone they were sent to. An order with another phone fails with `Coupon code not available`, the same answer as for an unknown code.
 - `total_applicable_amount` is the sum of `price × quantity` of the lines the coupon applies to (all lines, or only lines in the coupon's `categories`).
 
 ### Checks in the browser
@@ -240,16 +399,16 @@ Total shown = subtotal + customization charges + delivery − discount (the disc
 
 - **Send the coupon's `_id` as `coupon`, never the code.** The server only looks at `coupon` when it is longer than 20 characters (an id is 24). A code like `DASHAIN10` is **silently ignored**: the order goes through with no discount and no error.
 - Send `coupon: ''` when there is no coupon or a browser check fails.
-- A `coupon` longer than 20 characters that isn't a valid id fails the order with HTTP 500.
-- The server re-validates the coupon. If it fails, the whole order fails with one of: `Coupon not found` (spelled correctly here), `You are not allowed to perform this action` (another store's coupon), `This reward coupon belongs to another account`, `Coupon is inactive`, `All the available coupons have been used.`, `Coupon code not available`, `Coupon code is expired`, `Only cash on delivery can use this coupon`, `Only online payment method can use this coupon`, `This coupon is not valid for <place>`, `Coupon is only applicable for order value above <min>` (the raw number, not formatted), `Coupon is not applicable to any products`.
+- A `coupon` longer than 20 characters that isn't an id is looked up as a code.
+- The server re-validates the coupon. If it fails, the whole order fails with one of: `Coupon not found` (spelled correctly here), `You are not allowed to perform this action` (another store's coupon), `Coupon code not available` (a retention code and another phone), `This reward coupon belongs to another account`, `Coupon is inactive`, `All the available coupons have been used.`, `Coupon code not available`, `Coupon code is expired`, `Only cash on delivery can use this coupon`, `Only online payment method can use this coupon`, `This coupon is not valid for <place>`, `Coupon is only applicable for order value above <min>` (the raw number, not formatted), `Coupon is not applicable to any products`, `This coupon has just been used up` (another order took the last use).
 - The server's discount is final. Its base includes customization charges when the coupon has no category restriction, so it can differ slightly from the preview.
 
 ### `?promo=`
 
 Any page opened with `?promo=CODE` stores `CODE` in `localStorage['promo_code']` (`BlanxerProvider` does this). The checkout applies it once each time it opens with cart lines. The package also reads `?promo=` from the checkout URL itself. Use this for shared promo links.
 
-- The stored code stays. It is applied again on later checkouts until another `?promo=` replaces it. (The hosted storefront clears it only on logout.)
-- It is sent as stored, not upper-cased. Codes are case-sensitive, so `?promo=dashain10` gets `Coupan not found` for the code `DASHAIN10`. Write promo links with the code exactly as created.
+- On a store without Offers, the stored code stays. It is applied again on later checkouts until another `?promo=` replaces it. (The hosted storefront clears it only on logout.) On an Offers store, the package clears it after an order.
+- Codes are not case-sensitive, so `?promo=dashain10` works for the code `DASHAIN10`, on both flows.
 
 ## Custom fields
 
@@ -342,7 +501,10 @@ interface OrderRequest {
   company_name?: string;
   paymentMethod: 'COD' | 'QR_Dynamic' | 'FonepayCheckout' | 'QR' | 'Esewa' | 'FonePay' | 'Khalti' | 'NPX' | 'nbank_card'; // missing = 'COD'
   url: string;                       // window.location.origin
-  coupon: string;                    // coupon _id or ''
+  coupon: string;                    // coupon _id or '' (Offers stores: '')
+  code?: string;                     // Offers stores: the typed code or '' (≤ 40)
+  removed_offers?: string[];         // Offers stores: automatic offers the shopper took off (≤ 20)
+  gift_choices?: Record<string, string>; // Offers stores: { [offer id]: 'productId|variantId' }
 }
 ```
 
@@ -390,7 +552,7 @@ A product can have a print add-on (`print_addon` on the product): the shopper pi
 7. Live flash sale limits: `Flash sale: you can buy at most N of "<name>" per order.`
 8. The stock hold. When the last units sit in other shoppers' checkouts: `The last units of an item in your cart are in other shoppers' checkouts right now. Please try again in about N minutes.`
 9. The delivery place and COD (messages above).
-10. The coupon (messages above).
+10. Offers stores: the offers and the code (see [The order on an Offers store](#the-order-on-an-offers-store)). Other stores: the coupon (messages above).
 
 Any other error is HTTP 400 `{"message": "..."}`.
 
@@ -416,6 +578,7 @@ Prices are the server's: the variant's price if it has one, else the product's. 
 ```
 
 - `total_price` = products + customization charges − discount. **It does not include delivery.** The shopper pays `total_price + delivery_charge`.
+- On an Offers store the response also has `offers`: `{ applications, code, totals }` (see [Offers](#the-order-on-an-offers-store)).
 - `hold_seconds` and `hold_expires_at` come only for online orders that hold stock.
 - `slug` is always `''`.
 - COD orders are created as `Pending`. Online orders are created as `Inactive` with `payment_status` `Unpaid`; it becomes `Processing` when a payment starts, and the order becomes `Pending` / `Paid` when the payment is confirmed.
@@ -608,6 +771,7 @@ Show "Payment for your order failed" and "However, you might receive call/sms so
 | `customer_phone_number` | Masked: the first 7 digits become `•••••••` |
 | `ordered_products[]` | `image_url`, `product_id`, `product_name`, `price`, `compare_at_price`, `variant_id`, `variant_name`, `quantity`, `print` |
 | `product_total_price`, `delivery_charge`, `customization_total`, `discount` (the full object: `d_value`, `code`, ...), `partial_payment_amount` | Total = `product_total_price + delivery_charge + customization_total − discount.d_value` |
+| `promotions[]`, `promo_total`, `delivery_charge_before_promo`; per line `promo_discount`, `promo_allocations`, `free_qty` | Orders priced by Offers only. `promotions` lists each offer (`title`, `code`, `kind`, `class`, `amount`); the product and order offers are already inside `discount.d_value`, and a delivery offer already lowered `delivery_charge` (from `delivery_charge_before_promo`) |
 | `store` | The store id |
 | `review` | `{count, total_rating, received: [product ids], reviews: [ids]}` |
 | `reviews[]` | `product`, `images`, `review`, `rating` |
@@ -618,6 +782,7 @@ What the page shows:
 
 - With `?from=checkout`: "Congratulations! Your order has been placed successfully! Thank you for your purchase. You will receive a confirmation SMS or call soon."
 - The status and payment status, the lines, and the totals. If `partial_payment_amount > 0`, show it and "Cash on Delivery: total − partial".
+- An order with `promotions`: one row per offer, gift lines (`free_qty`) as "Free", and the waived delivery. An order without: one "Discount" row with `discount.d_value`.
 - **Cancel** when `status` is `Pending` or `Processing` and `checkout.extras.allow_customer_cancellation` is on. See [Forms and extras → Cancel an order](https://developers.blanxer.com/api-docs/forms-and-extras.md#cancel-an-order).
 - **Review** per product when `status` is `Delivered` and the product isn't in `review.received`. See [Forms and extras → Review a product](https://developers.blanxer.com/api-docs/forms-and-extras.md#review-a-product).
 
@@ -635,8 +800,8 @@ On any store, an order with `customer_phone_number` `0000000000`, or a `customer
 - The body is validated first, so every other field must still be valid.
 - The response has no `_id`. The checkout must treat `success` without `_id` as a test response and stop: no payment start, no redirect.
 - It still counts toward the order rate limit (5 per 10 minutes per store and IP).
-- This tests the form, validation, delivery and coupon display. It can't test payments: there is no order to pay, so the gateway and QR screens are checked live (see [Testing](https://developers.blanxer.com/api-docs/testing.md)).
+- This tests the form, validation, delivery and the coupon or offer display. It stops before the coupon or code is checked, so a wrong code still gets `{"success": true}`; check codes with the quote (Offers) or `POST /public/coupon`. It can't test payments: there is no order to pay, so the gateway and QR screens are checked live (see [Testing](https://developers.blanxer.com/api-docs/testing.md)).
 
-## Not in v1
+## Not in the package yet
 
-Partial payment, offers and agreed delivery are not in the package's checkout v1. They come in checkout v1.1. Neither is a print picker (see [Print add-on products](#print-add-on-products)). Customer login, loyalty discounts and reward points are not part of BlanxerAPI.
+Partial payment and agreed delivery are not in the package's checkout. Offers are, from package 0.2.0 (see [Offers](#offers)). Neither is a print picker (see [Print add-on products](#print-add-on-products)). Customer login, loyalty discounts and reward points are not part of BlanxerAPI.

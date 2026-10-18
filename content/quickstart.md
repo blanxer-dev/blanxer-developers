@@ -10,7 +10,7 @@ This page is the procedure. Each step links to the guide with the details.
 
 ## Before you start
 
-Read [the 13 hard rules](https://developers.blanxer.com/api-docs/rules.md). In short: Next.js only, start from the starter, keep `@blanxer-dev/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data.
+Read [the 14 hard rules](https://developers.blanxer.com/api-docs/rules.md). In short: Next.js only, start from the starter, keep `@blanxer-dev/storefront` for checkout, keep the four required routes, call orders and payments from the browser, no secrets, no customer login, no invented data, prices with offers come from the server's quote.
 
 Install the agent tools:
 
@@ -22,8 +22,8 @@ Install the agent tools:
 
 | Channel | Used by | For | Auth |
 |---|---|---|---|
-| Public API, `https://api.blanxer.com` | The site (server and browser) | Read store, theme, catalog, delivery table, coupons. Place orders, start payments, track orders. | None. CORS `*`. |
-| Blanxer MCP, `https://mcp.blanxer.com/mcp` | You, the agent, in chat | Change store data: SEO text, products, photos, categories, brands, coupons, delivery, the site link | OAuth. The merchant signs in. |
+| Public API, `https://api.blanxer.com` | The site (server and browser) | Read store, theme, catalog, delivery table, offers and coupons, the cart quote. Place orders, start payments, track orders. | None. CORS `*`. |
+| Blanxer MCP, `https://mcp.blanxer.com/mcp` | You, the agent, in chat | Change store data: SEO text, products, photos, categories, brands, offers and codes, delivery, the site link | OAuth. The merchant signs in. |
 | Blanxer-served XML, `https://api.blanxer.com/public/...xml` | Google and Meta | Product feed and catalog sitemap | None |
 
 The site never holds a key and never talks to the MCP.
@@ -88,7 +88,7 @@ The starter's `npm run dev`, `npm run build` and `npm run deploy` scripts do the
 - Build pages with the package's data functions and components. See [Catalog](https://developers.blanxer.com/api-docs/catalog.md) and [Package](https://developers.blanxer.com/api-docs/package.md).
 - Theme the checkout; don't rewrite it. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md).
 - Optimise every image (rule 11) and show a before/after size table. See [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md).
-- Fix store data through the MCP: SEO text, categories and brands for the menus, product photos, launch coupons. Confirm bulk changes first (rule 13).
+- Fix store data through the MCP: SEO text, categories and brands for the menus, product photos, launch offers or coupons (see [MCP → Launch offers](https://developers.blanxer.com/api-docs/mcp-for-website.md#launch-offers)). Confirm bulk changes first (rule 14).
 
 Routes every site has:
 

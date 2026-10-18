@@ -1,21 +1,23 @@
 openapi: 3.1.0
 info:
   title: BlanxerAPI (public endpoints for custom store websites)
-  version: 1.0.0
+  version: 1.1.0
   summary: The public Blanxer API endpoints a custom Next.js store website uses.
   description: |
     Only the endpoints a BlanxerAPI custom site uses. No admin routes, no customer
     login (`/customer/auth`, `/customer/account`), no wishlist or rewards.
 
     - No API key. CORS `*`.
-    - Reads can run on the server. Writes (orders, coupons, payment starts, hold
-      release, stock alerts, forms, Meta events, reviews, cancels) must run in the
-      browser: several are rate-limited per IP.
+    - Reads can run on the server. Writes (orders, coupons, the offers cart quote, payment
+      starts, hold release, stock alerts, forms, Meta events, reviews, cancels) must run in
+      the browser: several are rate-limited per IP.
+    - Stores on Offers: the server prices the cart (`POST /public/promotions/{store_id}/quote`).
+      A site shows the quote and never computes a discount.
     - Errors: HTTP 400 `{message}`; validation errors `{error_type: "zod_validation", fields}`
       (most routes) or `{fields}` (check_domain and the eSewa, Khalti and FonePay starts);
       some field errors use HTTP 401 `{fields}`; rate limits HTTP 429 with a plain-text body.
-      A malformed id where the API doesn't validate it (all products, a category, one product,
-      an order's coupon) is HTTP 500 `{errors: {message}}` (a CastError).
+      A malformed id where the API doesn't validate it (all products, a category, one product)
+      is HTTP 500 `{errors: {message}}` (a CastError).
     - Guides: https://developers.blanxer.com/llms.txt
   contact:
     url: https://developers.blanxer.com
@@ -33,8 +35,10 @@ tags:
     description: Products, variants, categories, brands, search and sale
   - name: Flash sale
     description: Live and upcoming flash sales, units left, notify me
+  - name: Offers
+    description: Stores on Blanxer's Offers plugin. Public offers, one product's offers, and the cart priced by the server
   - name: Checkout
-    description: Delivery table, coupons, custom-field uploads and placing orders (browser only)
+    description: Delivery table, coupons (stores not on Offers), custom-field uploads and placing orders (browser only)
   - name: Payments
     description: Starting and checking payments (browser only)
   - name: Orders
@@ -516,15 +520,97 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/DeliveryTable' }
 
+  /public/promotions/{store_id}:
+    get:
+      tags: [Offers]
+      operationId: listOffers
+      summary: Is the store on Offers, its public offers and display settings
+      description: |
+        Live (not cached by the API). `enabled: false` = the store isn't on Offers: use
+        `POST /public/coupon`. Lists public offers for the website that are live or start within
+        30 days, highest priority first, at most 100. Never lists personal codes, offers for
+        chosen customers, hidden offers, usage counts or limits. An API without Offers answers
+        404; treat it as `enabled: false`.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      responses:
+        '200':
+          description: The store's offers
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OffersList' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /public/promotions/{store_id}/product/{product_id}:
+    get:
+      tags: [Offers]
+      operationId: listProductOffers
+      summary: The offers that touch one product (badges, product-page blocks)
+      description: |
+        Same answer as the list, with only the offers on this product or its categories, plus
+        store-wide ones (order discounts, free delivery, gifts). Unknown product: HTTP 400
+        `Product not found`.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: The product's offers
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OffersList' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /public/promotions/{store_id}/quote:
+    post:
+      tags: [Offers]
+      operationId: quoteCart
+      summary: The cart priced by the server (browser only; 300 per 10 minutes per IP)
+      description: |
+        Per-line offers, lines the server added (gifts, free items: `added_by`), the code's
+        result, delivery, totals and the server's messages. Holds nothing (no stock, no use of a
+        code). Send only the shopper's lines: never send a line with `added_by`. Lines whose
+        product isn't Active in this store, or whose variant doesn't exist, are left out without
+        an error. Customization charges are not in the totals. A store not on Offers answers
+        `{success: true, enabled: false}` with no `data`.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuoteRequest' }
+      responses:
+        '200':
+          description: The quote
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  enabled: { type: boolean }
+                  data: { $ref: '#/components/schemas/Quote' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
   /public/coupon:
     post:
       tags: [Checkout]
       operationId: applyCoupon
-      summary: Look up and check a coupon code (browser only)
+      summary: Look up and check a coupon code (stores not on Offers; browser only; 40 per 10 minutes per IP)
       description: |
-        Each successful call holds one use of the coupon for about 12 seconds. That only matters
-        for coupons with a usage limit: on the last use, an order placed within ~12 s of Apply can
-        fail with `All the available coupons have been used.` Send the returned `_id` with the
+        For stores not on Offers (`GET /public/promotions/{store_id}` says `enabled: false`).
+        The code is trimmed and upper-cased (not case-sensitive). The call holds nothing: a use is
+        claimed only when an order is created, and given back if the order is cancelled, its
+        online payment fails or its unpaid checkout expires. Send the returned `_id` with the
         order, never the code.
       requestBody:
         required: true
@@ -535,7 +621,7 @@ paths:
               required: [store, code]
               properties:
                 store: { type: string, description: "Store id" }
-                code: { type: string, description: "Exact code (case-sensitive)" }
+                code: { type: string, description: "The code, any case (trimmed and upper-cased by the server)" }
                 products:
                   type: array
                   items:
@@ -552,6 +638,8 @@ paths:
               schema: { $ref: '#/components/schemas/Coupon' }
         '400':
           $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /order/{store_id}:
     post:
@@ -559,13 +647,18 @@ paths:
       operationId: placeOrder
       summary: Place an order (browser only; 5 per 10 minutes per store and IP)
       description: |
-        The server recomputes prices, stock, delivery, COD and the coupon. It takes
+        The server recomputes prices, stock, delivery, COD, the offers and the coupon. It takes
         `customization_charge` and `custom_fields` from the request as sent.
         Testing: `customer_phone_number` `0000000000`, or a `customer_email` containing
-        `mailinator.net`, returns `{"success": true}` after validation and creates nothing.
+        `mailinator.net`, returns `{"success": true}` after validation and creates nothing (the
+        code or coupon isn't checked).
         The rate limit (keyed on store id + `cf-connecting-ip`) counts every request, including
-        test orders and failed ones. A `coupon` longer than 20 characters that isn't a valid id
-        is HTTP 500.
+        test orders and failed ones. A `coupon` longer than 20 characters that isn't an id is
+        looked up as a code.
+        Stores on Offers: send `code`, `removed_offers`, `gift_choices` and `coupon: ''`, and only
+        the shopper's lines (never lines with `added_by`). A rejected code is HTTP 401
+        `{fields: {code: <message>}}`. An offer whose last use another order just took is HTTP
+        400 `{message}` ("... has just been fully used. Please review your order.").
       parameters:
         - $ref: '#/components/parameters/StoreId'
       requestBody:
@@ -1330,7 +1423,7 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ValidationError' }
     FieldError:
-      description: A field error returned with HTTP 401 (email required, phone mismatch)
+      description: A field error returned with HTTP 401 (email required, phone mismatch, a discount code the offers rejected as `fields.code`)
       content:
         application/json:
           schema:
@@ -1740,6 +1833,252 @@ components:
               - { type: [boolean, string] }
             items: { type: number }
 
+    OfferKind:
+      type: string
+      enum: [amount_off, free_delivery, tiers, bxgy, bundle, gift]
+      description: amount_off, free delivery, buy more save more (tiers), buy X get Y (bxgy), bundle, free gift
+
+    OfferScope:
+      type: object
+      description: Which cart items an offer looks at
+      properties:
+        type: { type: string, enum: [all, categories, products] }
+        categories: { type: array, items: { type: string } }
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id: { type: string }
+              variant_ids: { type: array, items: { type: string }, description: "Empty = every variant" }
+
+    PublicOffer:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        kind: { $ref: '#/components/schemas/OfferKind' }
+        method: { type: string, enum: [automatic, code] }
+        code: { type: [string, 'null'], description: "Public code offers only" }
+        state: { type: string, enum: [live, scheduled] }
+        starts_at: { type: [string, 'null'], format: date-time }
+        ends_at: { type: [string, 'null'], format: date-time }
+        channels: { type: array, items: { type: string, enum: [web, pos, manual] } }
+        display:
+          type: object
+          properties:
+            public: { type: boolean }
+            badge: { type: string }
+            top_bar: { type: boolean }
+            offers_page: { type: boolean }
+            countdown: { type: boolean }
+          additionalProperties: true
+        conditions:
+          type: object
+          properties:
+            min_amount: { type: [number, 'null'], description: "Products before discounts, without delivery" }
+            min_qty: { type: [number, 'null'] }
+            payment: { type: string, enum: [any, cod, online] }
+            places: { type: array, items: { type: string }, description: "Empty = every place" }
+            customers: { type: string, enum: [everyone, new, members] }
+        skip_on_sale: { type: boolean, description: "Items already on sale (compare-at above price) don't get it" }
+        amount_off:
+          type: object
+          properties:
+            value_type: { type: string, enum: [percent, fixed] }
+            value: { type: number }
+            max_discount: { type: [number, 'null'] }
+            scope: { $ref: '#/components/schemas/OfferScope' }
+        free_delivery:
+          type: object
+          properties:
+            value_type: { type: string, enum: [percent, fixed] }
+            value: { type: number, description: "percent 100 = free" }
+            max_discount: { type: [number, 'null'] }
+        tiers:
+          type: object
+          properties:
+            basis: { type: string, enum: [qty, amount] }
+            scope: { $ref: '#/components/schemas/OfferScope' }
+            per_product: { type: boolean }
+            levels:
+              type: array
+              items:
+                type: object
+                properties:
+                  min: { type: number }
+                  value_type: { type: string, enum: [percent, fixed] }
+                  value: { type: number }
+        bxgy: { type: object, additionalProperties: true, description: "{buy {basis, min, scope}, get {qty, scope, value_type free|percent|fixed, value, add?}, repeat, max_free?}" }
+        bundle: { type: object, additionalProperties: true, description: "{items [{product_id, variant_id?, qty}], price_type price|percent|fixed, value, max_sets?, slug, image_url}" }
+        gift: { type: object, additionalProperties: true, description: "{trigger {basis amount|products, min_amount, scope?, min_qty}, items [{product_id, variant_id?, qty}], auto_add}" }
+
+    OfferDisplaySettings:
+      type: object
+      description: The store's offer display settings. A missing key means the default (in brackets).
+      properties:
+        badges: { type: boolean, description: "[true]" }
+        badge_style: { type: string, enum: [pill, square, ribbon], description: "[pill]" }
+        badge_corner: { type: string, enum: [top-left, top-right], description: "[top-left]" }
+        saving_as: { type: string, enum: [bigger, percent, amount], description: "[bigger]" }
+        colors:
+          type: object
+          description: "#rrggbb, or success / theme"
+          properties:
+            saving: { type: string }
+            bxgy: { type: string }
+            gift: { type: string }
+            bundle: { type: string }
+            tier: { type: string }
+        pdp_tiers: { type: boolean, description: "[true]" }
+        pdp_notes: { type: boolean, description: "[true]" }
+        pdp_bundle: { type: boolean, description: "[true]" }
+        pdp_delivery: { type: boolean, description: "[true]" }
+        cart_progress: { type: boolean, description: "[true]" }
+        cart_upsell: { type: boolean, description: "[true]" }
+        cart_savings: { type: boolean, description: "[true]" }
+        code_field: { type: boolean, description: "[true]" }
+        top_bar: { type: boolean, description: "[false]" }
+        offers_page: { type: boolean, description: "[true]" }
+        countdowns: { type: boolean, description: "[true]" }
+
+    OffersList:
+      type: object
+      properties:
+        success: { type: boolean }
+        enabled: { type: boolean, description: "false = not on Offers: use the coupon flow" }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/PublicOffer' }
+        settings: { $ref: '#/components/schemas/OfferDisplaySettings' }
+        server_time: { type: string, format: date-time, description: "Count down from this, not the device clock" }
+
+    QuoteRequest:
+      type: object
+      required: [products]
+      properties:
+        products:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: Only the shopper's lines. Never a line with `added_by`.
+          items:
+            type: object
+            required: [product, quantity]
+            properties:
+              product: { type: string }
+              variant: { type: string, default: '', description: "Variant _id, '' without variants" }
+              quantity: { type: integer, minimum: 1, maximum: 1000 }
+        code: { type: string, maxLength: 40, description: "Any case; trimmed and upper-cased. One per order" }
+        place: { type: string, maxLength: 120, description: "Delivery place name; the server works out the delivery charge from it" }
+        payment: { type: [string, 'null'], enum: [cod, online, null] }
+        phone: { type: string, maxLength: 20, description: "10 digits. Once-per-customer codes and first-order offers need it" }
+        removed_offers:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 40 }
+          description: Automatic offers the shopper took off
+        gift_choices:
+          type: object
+          additionalProperties: { type: string, maxLength: 80 }
+          description: "{ <offer id>: '<product_id>|<variant_id>' }"
+
+    Allocation:
+      type: object
+      properties:
+        promotion_id: { type: string }
+        amount: { type: number }
+
+    QuoteLine:
+      type: object
+      properties:
+        key: { type: string, description: "l0, l1 ... for the shopper's lines; offer:<id>:<product>:<variant> for lines the server added" }
+        product_id: { type: [string, 'null'] }
+        variant_id: { type: [string, 'null'] }
+        name: { type: string }
+        variant_name: { type: string }
+        image_url: { type: string }
+        unit_price: { type: number }
+        qty: { type: number }
+        gross: { type: number }
+        allocations:
+          type: array
+          items: { $ref: '#/components/schemas/Allocation' }
+        promo_discount: { type: number }
+        net: { type: number, description: "gross − promo_discount" }
+        free_qty: { type: number, description: "Units of this line that are free" }
+        added_by: { type: string, description: "The offer that added this line (gift, free item). Show it; never send it back" }
+
+    OfferApplication:
+      type: object
+      properties:
+        promotion_id: { type: string }
+        title: { type: string }
+        kind: { $ref: '#/components/schemas/OfferKind' }
+        class: { type: string, enum: [product, order, delivery] }
+        method: { type: string, enum: [automatic, code] }
+        code: { type: [string, 'null'] }
+        amount: { type: number }
+        detail: { type: object, additionalProperties: true, description: "tier {min, value_type, value}, sets, gift, free_units, pending" }
+
+    QuoteCodeResult:
+      type: [object, 'null']
+      description: null when no code was sent
+      properties:
+        code: { type: string }
+        status: { type: string, enum: [applied, rejected] }
+        reason:
+          type: string
+          enum: [not_found, not_active, not_started, ended, used_up, customer_used, need_phone, channel, payment, place, customer, min_amount, min_qty, no_items, not_better, one_code]
+        message: { type: string, description: "Show it under the code field" }
+
+    QuoteTotals:
+      type: object
+      description: Customization charges are not included
+      properties:
+        gross: { type: number }
+        product_discount: { type: number }
+        order_discount: { type: number }
+        promo_discount: { type: number, description: "product_discount + order_discount" }
+        goods: { type: number, description: "gross − promo_discount" }
+        delivery: { type: [number, 'null'], description: "null until the place is known" }
+        total: { type: number, description: "goods + delivery" }
+
+    Quote:
+      type: object
+      properties:
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/QuoteLine' }
+        applications:
+          type: array
+          items: { $ref: '#/components/schemas/OfferApplication' }
+        code: { $ref: '#/components/schemas/QuoteCodeResult' }
+        delivery:
+          type: object
+          properties:
+            before: { type: [number, 'null'] }
+            discount: { type: number }
+            after: { type: [number, 'null'] }
+            promotion_id: { type: string }
+            pending: { type: boolean, description: "A free-delivery offer applies once the place is picked" }
+        totals: { $ref: '#/components/schemas/QuoteTotals' }
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, enum: [upsell, eligible, applied, rejected, info] }
+              promotion_id: { type: string }
+              kind: { $ref: '#/components/schemas/OfferKind' }
+              text: { type: string, description: "Show as is" }
+              data:
+                type: object
+                additionalProperties: true
+                description: "remaining_amount, threshold, remaining_qty, next {min, value_type, value}, free_missing, missing[]"
+        server_time: { type: string, format: date-time }
+
     Coupon:
       type: object
       properties:
@@ -1807,7 +2146,21 @@ components:
           description: The server accepts any string and stores it; the enum is the client contract. Missing = `COD`.
           enum: [COD, QR_Dynamic, FonepayCheckout, QR, Esewa, FonePay, Khalti, NPX, nbank_card]
         url: { type: string, description: "The site's origin, e.g. https://mystore.com (no trailing slash)" }
-        coupon: { type: string, default: '', description: "The coupon _id, or ''. Read only when longer than 20 characters, so a code is silently ignored." }
+        coupon: { type: string, default: '', description: "Stores not on Offers: the coupon _id, or ''. Read only when longer than 20 characters, so a short code is silently ignored. Stores on Offers: ''." }
+        code:
+          type: string
+          maxLength: 40
+          default: ''
+          description: Stores on Offers. The code the shopper typed, any case, or ''. One per order.
+        removed_offers:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 40 }
+          description: Stores on Offers. Ids of automatic offers the shopper took off (same as in the quote).
+        gift_choices:
+          type: object
+          additionalProperties: { type: string, maxLength: 80 }
+          description: "Stores on Offers. The gift picked per offer: `{ <offer id>: '<product_id>|<variant_id>' }`."
 
     OrderResponse:
       type: object
@@ -1822,6 +2175,15 @@ components:
         slug: { type: string, const: '', description: Always empty }
         hold_seconds: { type: number, description: "Online orders that hold stock only" }
         hold_expires_at: { type: string, format: date-time }
+        offers:
+          type: object
+          description: Stores on Offers only. The order's own pricing.
+          properties:
+            applications:
+              type: array
+              items: { $ref: '#/components/schemas/OfferApplication' }
+            code: { $ref: '#/components/schemas/QuoteCodeResult' }
+            totals: { $ref: '#/components/schemas/QuoteTotals' }
 
     PaymentStart:
       type: object
@@ -1894,6 +2256,12 @@ components:
               variant_name: { type: string }
               quantity: { type: number }
               print: {}
+              promo_discount: { type: number, description: "Offers: what the offers took off this line" }
+              promo_allocations:
+                type: array
+                description: "Offers: the line's share of each offer"
+                items: { $ref: '#/components/schemas/Allocation' }
+              free_qty: { type: number, description: "Offers: units of this line that are free (gifts, buy X get Y)" }
         product_total_price: { type: number }
         delivery_charge: { type: number }
         customization_total: { type: number }
@@ -1905,6 +2273,25 @@ components:
             code: { type: string }
           additionalProperties: true
         partial_payment_amount: { type: number }
+        promotions:
+          type: array
+          description: |
+            Orders priced by Offers only (older orders have none: show discount.d_value). Product
+            and order offers are already inside discount.d_value; a delivery offer already lowered
+            delivery_charge.
+          items:
+            type: object
+            properties:
+              promotion_id: { type: string }
+              code: { type: [string, 'null'] }
+              title: { type: string }
+              kind: { $ref: '#/components/schemas/OfferKind' }
+              class: { type: string, enum: [product, order, delivery] }
+              method: { type: string, enum: [automatic, code] }
+              amount: { type: number }
+              detail: { type: object, additionalProperties: true }
+        promo_total: { type: number, description: "What the offers took off the goods (part of discount.d_value)" }
+        delivery_charge_before_promo: { type: number, description: "The delivery charge before a delivery offer" }
         review:
           type: object
           properties:

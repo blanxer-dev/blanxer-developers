@@ -6,7 +6,7 @@
       "pages": [
         { "slug": "index", "nav": "Overview" },
         { "slug": "quickstart", "nav": "Quickstart" },
-        { "slug": "rules", "nav": "The 13 hard rules" }
+        { "slug": "rules", "nav": "The 14 hard rules" }
       ]
     },
     {
