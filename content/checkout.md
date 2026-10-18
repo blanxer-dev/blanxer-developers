@@ -214,11 +214,14 @@ POST /public/promotions/<store_id>/quote
 Content-Type: application/json
 
 {
-  "products": [{ "product": "66f1c0ffee0000000000aa01", "variant": "66f1c0ffee0000000000bb07", "quantity": 2 }],
-  "code": "DASHAIN5",
-  "place": "Pokhara",
+  "products": [
+    { "product": "6ad46b3921d870f813ed1e93", "variant": "", "quantity": 2 },
+    { "product": "6ad46b3a21d870f813ed1ebf", "variant": "", "quantity": 1 },
+    { "product": "6ad46b3a21d870f813ed1ec8", "variant": "", "quantity": 1 }
+  ],
+  "code": "dashain10",
+  "place": "Kathmandu Inside Ring Road",
   "payment": "cod",
-  "phone": "9800000000",
   "removed_offers": [],
   "gift_choices": {}
 }
@@ -234,9 +237,9 @@ Content-Type: application/json
 | `removed_offers` | Ids of automatic offers the shopper took off (for example a gift they don't want), at most 20 |
 | `gift_choices` | `{ "<offer id>": "<product_id>\|<variant_id>" }`: the gift the shopper picked, for a gift offer with several gifts |
 
-A line whose product isn't Active in this store, or whose variant doesn't exist, is left out of the quote without an error (the order would refuse it).
+A line whose product isn't Active in this store, or whose variant doesn't exist, is left out of the quote without an error (the order would refuse it). Lines without a `product` (a custom name + price) are left out too: the website sells catalogue products only. A cart with no catalogue line is HTTP 400 `Add a product to the cart`.
 
-Response:
+Response (a real answer from a dev store: 2 Cotton Kurtas, a Hemp backpack and a Dhaka Topi with the code DASHAIN10, delivery inside the Ring Road):
 
 ```json
 {
@@ -244,40 +247,31 @@ Response:
   "enabled": true,
   "data": {
     "lines": [
-      { "key": "l0", "product_id": "66f1c0ffee0000000000aa01", "variant_id": "66f1c0ffee0000000000bb07",
-        "name": "Cotton Kurta", "variant_name": "Blue/M", "image_url": "https://...",
-        "unit_price": 2000, "qty": 2, "gross": 4000,
-        "allocations": [{ "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "amount": 400 },
-                        { "promotion_id": "6712a0c1d2e3f4a5b6c7d803", "amount": 180 }],
-        "promo_discount": 580, "net": 3420, "free_qty": 0 },
-      { "key": "offer:6712a0c1d2e3f4a5b6c7d804:66f1c0ffee0000000000aa09:", "product_id": "66f1c0ffee0000000000aa09",
-        "variant_id": null, "name": "Lokta Notebook", "unit_price": 250, "qty": 1, "gross": 250,
-        "allocations": [{ "promotion_id": "6712a0c1d2e3f4a5b6c7d804", "amount": 250 }],
-        "promo_discount": 250, "net": 0, "free_qty": 1, "added_by": "6712a0c1d2e3f4a5b6c7d804" }
+      {"key": "l0", "product_id": "6ad46b3921d870f813ed1e93", "variant_id": null, "name": "Cotton Kurta", "unit_price": 1200, "qty": 2, "gross": 2400, "allocations": [{"promotion_id": "6ad46b3c21d870f813ed1f04", "amount": 240}, {"promotion_id": "6ad46b3c21d870f813ed1efc", "amount": 214}], "promo_discount": 454, "net": 1946, "free_qty": 0},
+      {"key": "l1", "product_id": "6ad46b3a21d870f813ed1ebf", "variant_id": null, "name": "Hemp backpack", "unit_price": 2250, "qty": 1, "gross": 2250, "allocations": [{"promotion_id": "6ad46b3c21d870f813ed1efc", "amount": 222}], "promo_discount": 222, "net": 2028, "free_qty": 0},
+      {"key": "l2", "product_id": "6ad46b3a21d870f813ed1ec8", "variant_id": null, "name": "Dhaka Topi", "unit_price": 650, "qty": 1, "gross": 650, "allocations": [{"promotion_id": "6ad46b3c21d870f813ed1efc", "amount": 64}], "promo_discount": 64, "net": 586, "free_qty": 0},
+      {"key": "offer:6ad46b3c21d870f813ed1f07:6ad46b3a21d870f813ed1ed2:", "product_id": "6ad46b3a21d870f813ed1ed2", "variant_id": null, "name": "Lokta paper notebook", "unit_price": 350, "qty": 1, "gross": 350, "allocations": [{"promotion_id": "6ad46b3c21d870f813ed1f07", "amount": 350}], "promo_discount": 350, "net": 0, "free_qty": 1, "added_by": "6ad46b3c21d870f813ed1f07"}
     ],
     "applications": [
-      { "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "title": "Buy 2 Kurtas, save 10%", "kind": "tiers", "class": "product",
-        "method": "automatic", "code": null, "amount": 400, "detail": { "tier": { "min": 2, "value_type": "percent", "value": 10 } } },
-      { "promotion_id": "6712a0c1d2e3f4a5b6c7d804", "title": "Free notebook over Rs 3,000", "kind": "gift", "class": "product",
-        "method": "automatic", "code": null, "amount": 250 },
-      { "promotion_id": "6712a0c1d2e3f4a5b6c7d803", "title": "Dashain 5% off", "kind": "amount_off", "class": "order",
-        "method": "code", "code": "DASHAIN5", "amount": 180 },
-      { "promotion_id": "6712a0c1d2e3f4a5b6c7d801", "title": "Free delivery over Rs 3,000", "kind": "free_delivery",
-        "class": "delivery", "method": "automatic", "code": null, "amount": 150 }
+      {"promotion_id": "6ad46b3c21d870f813ed1f07", "title": "Free Lokta notebook over Rs 5,000", "kind": "gift", "class": "product", "method": "automatic", "code": null, "amount": 350, "detail": {"gift": "6ad46b3a21d870f813ed1ed2|"}},
+      {"promotion_id": "6ad46b3c21d870f813ed1f04", "title": "Buy more, save more · Kurtas", "kind": "tiers", "class": "product", "method": "automatic", "code": null, "amount": 240, "detail": {"tier": {"min": 2, "value_type": "percent", "value": 10}}},
+      {"promotion_id": "6ad46b3c21d870f813ed1efc", "title": "Dashain 10% off", "kind": "amount_off", "class": "order", "method": "code", "code": "DASHAIN10", "amount": 500},
+      {"promotion_id": "6ad46b3c21d870f813ed1f01", "title": "Free delivery over Rs 3,000", "kind": "free_delivery", "class": "delivery", "method": "automatic", "code": null, "amount": 150}
     ],
-    "code": { "code": "DASHAIN5", "status": "applied", "message": "DASHAIN5 applied" },
-    "delivery": { "before": 150, "discount": 150, "after": 0, "promotion_id": "6712a0c1d2e3f4a5b6c7d801" },
-    "totals": { "gross": 4250, "product_discount": 650, "order_discount": 180, "promo_discount": 830,
-                "goods": 3420, "delivery": 0, "total": 3420 },
+    "code": {"code": "DASHAIN10", "status": "applied", "message": "DASHAIN10 applied"},
+    "delivery": {"before": 150, "discount": 150, "after": 0, "promotion_id": "6ad46b3c21d870f813ed1f01"},
+    "totals": {"gross": 5650, "product_discount": 590, "order_discount": 500, "promo_discount": 1090, "goods": 4560, "delivery": 0, "total": 4560},
     "messages": [
-      { "type": "upsell", "promotion_id": "6712a0c1d2e3f4a5b6c7d802", "kind": "tiers",
-        "text": "Add 1 more to get 15% off — Buy 2 Kurtas, save 10%",
-        "data": { "remaining_qty": 1, "next": { "min": 3, "value_type": "percent", "value": 15 } } }
+      {"type": "info", "promotion_id": "6ad46b3c21d870f813ed1efc", "kind": "amount_off", "text": "DASHAIN10: Once per customer"},
+      {"type": "upsell", "promotion_id": "6ad46b3c21d870f813ed1f0a", "kind": "bundle", "text": "Complete Dashain look to save", "data": {"missing": [{"product_id": "6ad46b3a21d870f813ed1edd", "variant_id": null, "qty": 1}]}},
+      {"type": "upsell", "promotion_id": "6ad46b3c21d870f813ed1f04", "kind": "tiers", "text": "Add 1 more to get 15% off — Buy more, save more · Kurtas", "data": {"remaining_qty": 1, "next": {"min": 3, "value_type": "percent", "value": 15}}}
     ],
-    "server_time": "2026-10-18T09:00:00.000Z"
+    "server_time": "2026-10-18T09:26:19.443Z"
   }
 }
 ```
+
+How it adds up: gross Rs 5,650 − product offers Rs 590 (the free notebook 350 + the kurta tier 240) − the code Rs 500 (10% of what's left, capped at Rs 500) = goods Rs 4,560; delivery Rs 150 is waived by the free-delivery offer, so the total is Rs 4,560. The notebook line was added by the server (`added_by`): show it as free, never send it back.
 
 - **`lines`**: every line with its offers. `allocations` says which offer took how much off the line; `net` = `gross` − `promo_discount`. A line with `added_by` (the offer's id) was **added by the server**: a gift or a free item. Show it (with "Free" when `net` is 0), and never send it back in a quote or an order; the server adds it again. `free_qty` is how many of the line's units are free. Match lines to the cart by `product_id` and `variant_id`.
 - **`applications`**: one row per offer used. `class` is `product`, `order` or `delivery`. `detail` says what it gave, when there is something to show: the tier reached, the number of sets, the gift, the free units.
