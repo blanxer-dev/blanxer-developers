@@ -15,7 +15,7 @@ import { agentBuilds, blanxerPowers, DASHBOARD_URL, devLinks, HOME_DESCRIPTION, 
 export const metadata: Metadata = { title: { absolute: HOME_TITLE }, alternates: { canonical: "/" } };
 
 const features: { title: string; text: string }[] = [
-  { title: "Same checkout", text: "Payments, coupons and delivery work just like your Blanxer store." },
+  { title: "Same checkout", text: "Payments, offers and delivery work just like your Blanxer store." },
   { title: "Found on Google", text: "SEO is built in from the first page." },
   { title: "Yours to keep", text: "Your code, your Cloudflare, your domain." },
 ];

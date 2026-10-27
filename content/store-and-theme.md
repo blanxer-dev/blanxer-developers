@@ -156,6 +156,7 @@ const font = Poppins({ subsets: ['latin'], weight: ['400', '600'], display: 'swa
 | `product_custom_options` | `{showProductStock, outOfStockBaseValue, discountBadgeColor, ...}` | Stock display and the discount badge colour on product pages |
 | `newsletter` | `{enabled, headerImage, title, description, list_id}` | A newsletter sign-up block |
 | `samparka` | `{enabled: true}` | The store uses Samparka (loyalty); custom sites have no login, so ignore it |
+| `offers` | `{enabled, display}` | The store is on Offers unless `enabled` is `false`; `display` holds its offer display settings. The site caches this copy: read the live flag and settings from `GET /public/promotions/<store_id>`. See [Checkout → Offers](https://developers.blanxer.com/api-docs/checkout.md#offers) |
 
 Most delivery-partner plugins are removed from this payload. Treat any other plugin as Blanxer-internal: don't display, log or depend on its `details`.
 
