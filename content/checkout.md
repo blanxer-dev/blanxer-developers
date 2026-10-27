@@ -586,7 +586,7 @@ Right after a successful response the component stores, in `sessionStorage`:
 
 ## Store pickup
 
-Stores on the Platinum plan with advanced inventory and two or more outlets can let shoppers collect an order at an outlet (Setting → Checkout → Store pickup). The `Checkout` component of `@blanxer-dev/storefront` 0.4+ does all of this; read on if you build your own.
+Stores on the Platinum plan with advanced inventory can let shoppers collect an order at an outlet (Setting → Checkout → Store pickup). One outlet is enough: a one-shop store offers pickup at its shop, so `store_pickup.outlets` can hold a single outlet. Show it the same way (the shopper still picks it). The `Checkout` component of `@blanxer-dev/storefront` 0.4+ does all of this; read on if you build your own.
 
 **Is it on?** `check_domain` returns:
 
