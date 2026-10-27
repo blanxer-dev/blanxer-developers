@@ -37,24 +37,88 @@ The order asked for COD at a place where the store turned COD off.
 
 ### The coupon shows a discount, but the order has none
 
-The order was sent with the coupon **code** (`"coupon": "DASHAIN10"`). The server only reads `coupon` when it is longer than 20 characters (an id), so a code is ignored **silently**: no discount, no error.
+On a store **without** Offers: the order was sent with the coupon **code** (`"coupon": "DASHAIN10"`). The server only reads `coupon` when it is longer than 20 characters (an id), so a code is ignored **silently**: no discount, no error.
 
 - Send the `_id` returned by `POST /public/coupon` (rule 2: use the package's checkout, which does this).
 - Compare the order response: `total_price` already has the discount taken off.
 
+On a store **with** Offers, send the typed code as `code` (and `coupon: ''`). See [Checkout → The order on an Offers store](https://developers.blanxer.com/api-docs/checkout.md#the-order-on-an-offers-store).
+
 ### Coupon errors
+
+For stores without Offers (`POST /public/coupon` and the order's `coupon`).
 
 | Message | Cause |
 |---|---|
-| `Coupan not found` | No coupon with that exact code in this store. Codes are case-sensitive: the input is upper-cased, but a `?promo=` link is sent as written, so `?promo=dashain10` fails for `DASHAIN10` |
+| `Coupan not found` | No coupon with that code in this store. Codes are not case-sensitive (`dashain10`, also from `?promo=`, finds `DASHAIN10`), so check the spelling |
 | `Coupon not found` (at order time) | The coupon `_id` sent with the order no longer exists |
 | `Coupon is inactive` | Turned off in Blanxer |
-| `All the available coupons have been used.` | Used up. For a coupon with a usage limit, each successful apply also holds a use for about 12 seconds, so on the last use an order placed right after Apply can fail with this. Wait a few seconds and place it again |
-| `Coupon code not available` / `Coupon code is expired` | Before its start / after its end |
+| `All the available coupons have been used.` | Used up. Applying holds nothing, so this means real orders took every use. Uses come back when those orders are cancelled, fail to pay or are abandoned at the QR |
+| `This coupon has just been used up` (at order time) | Another order took the last use a moment earlier |
+| `Coupon code not available` | Before its start, or (at order time) a retention code sent to another phone number |
+| `Coupon code is expired` | After its end |
 | `Coupon is not applicable to any products` | A category coupon and no line in those categories |
 | `Coupon is only applicable for order value above N` | Subtotal + customization + delivery under the minimum |
 | `Only cash on delivery can use this coupon` / `Only online payment method can use this coupon` | Payment method restriction |
 | `This coupon is not valid for <place>` | Place restriction |
+| HTTP 429 `Too many requests, please try again later.` | More than 40 coupon checks in 10 minutes from one IP. Check when the shopper presses Apply, not on every keystroke or cart change |
+
+### A discount code is rejected
+
+On a store with Offers, the quote's `code` is `{"status": "rejected", "reason": "...", "message": "..."}`, and an order with that code fails with HTTP **401** `{"fields":{"code":"<message>"}}`. Show the message under the code field. The reasons:
+
+| `reason` | `message` |
+|---|---|
+| `not_found` | `This code isn't valid.` (also a personal code used with another phone number) |
+| `not_active` | `This code isn't active right now.` (paused or archived) |
+| `not_started` | `This code isn't active yet.` |
+| `ended` | `This code has expired.` |
+| `used_up` | `This code has been fully used.` |
+| `customer_used` | `You've already used this code.` |
+| `need_phone` | `This code is once per customer: add the customer's phone first.` Send `phone` in the quote |
+| `channel` | `This code can't be used here.` (the offer isn't on for the website) |
+| `payment` | `This code only works with cash on delivery.` / `This code only works with online payment.` |
+| `place` | `This code isn't available for delivery to <place>.` |
+| `customer` | `This code is for first orders only.` / `This code is for members only.` |
+| `min_amount` | `Add Rs <amount> more to use this code.` (products before discounts, without delivery) |
+| `min_qty` | `Add <n> more item(s) to use this code.` |
+| `no_items` | `Nothing in your cart can use this code.` |
+| `not_better` | `<CODE> would save Rs <a>, but it doesn't combine with <offers>, which save Rs <b> — so we kept it.` or `<CODE> doesn't combine with <offer>, which is already applied.` The automatic offers already save more |
+
+- Only one code per order. A second code replaces the first.
+- A free-delivery code entered before the place is picked says `<CODE> applied — delivery discount shows once the place is picked`. That is `applied`, not an error.
+
+### The order fails with "... has just been fully used. Please review your order."
+
+Another order took the last use of an offer or code between the quote and the order (`"<offer>" has just been fully used...`, `The code <CODE> has just been fully used...`, or `You've already used "<offer>".` for a once-per-customer offer). HTTP 400 `{message}`. Quote again and let the shopper review the new price before placing the order again.
+
+### HTTP 429 from the quote
+
+More than 300 quotes in 10 minutes from one IP. The body is plain text. Quote only when the lines, code, place, payment method or phone change, debounce it (the package's `useCartQuote` does), and never quote from the server: every visitor would share the Worker's IP (rule 5). The package keeps the last quote and tries again.
+
+### The price on the page differs from the order
+
+On a store with Offers, the site worked the prices out itself, or showed the catalog price, instead of showing the quote (rule 13). The order is always priced by the server, so the shopper pays the server's number.
+
+- Show the quote's `totals`, `lines[].net` and `applications`. Don't apply percentages, tiers or codes in the site's code.
+- Quote again after every change to the lines, code, place, payment method or phone, and drop answers to older requests.
+- Add customization charges to the quote's `total`; the quote leaves them out.
+- Don't send gift lines (`added_by`) back: a gift sent as a normal line is an extra item at full price, next to the gift the server adds again.
+- Older package versions (0.1.x) don't know Offers. Update to 0.2.0.
+
+### A gift doesn't appear
+
+- The cart hasn't reached the offer's minimum yet: the quote's `messages` say how much is missing.
+- The gift is out of stock (at the website's outlet on an advanced-inventory store, in the product's quantity on a simple one). The quote says `The free <name> is out of stock`; the checkout still works without it.
+- The shopper removed it: its offer id is in `removed_offers`. Restoring it (`restoreOffer` in the package) brings it back.
+- Some gift offers don't add the gift by themselves: the quote has an `eligible` message (`Add your free gift — <offer>`), and the gift is free once the shopper puts it in the cart. With several gifts, the server adds the first one in stock unless the shopper picked one (`gift_choices`).
+
+### The offers don't show at all
+
+- `GET /public/promotions/<store_id>` says `enabled: false`: the store isn't on Offers (the merchant turns it on in Blanxer → Offers). The coupon flow is right.
+- `enabled: true` but `data` is empty: no public offer is live for the website. Offers on POS or manual orders only, hidden offers and personal codes are never listed.
+- Offers was turned on a moment ago: the package only asks for offers when the store data (`check_domain`) carries the `offers` plugin, and the site caches that for about a minute. Reload after a minute.
+- Your own code reads the flag from `check_domain`: use `GET /public/promotions/<store_id>` (`useOffers().enabled`) for the live state.
 
 ### `Valid Return URL is required`
 

@@ -23,13 +23,27 @@ returns HTTP 200 `{"success": true}` and **creates no order**: no stock change, 
 - The response has no `_id`. The package's checkout stops there and shows "Test order accepted — no order was created for this test phone/email.": no payment start, no redirect, nothing in `sessionStorage`.
 - It can't test payments, stock holds or the tracking page, because no order exists.
 - Test orders still count toward the limit of 5 orders per 10 minutes per store and IP. After 5, wait or you get HTTP 429.
-- Applying a coupon is real even here: for a coupon with a usage limit, each successful apply holds one use for about 12 seconds. Don't test a coupon with very few uses left.
+- Applying a coupon or quoting a cart holds nothing, so it can't use up a code. A use is only claimed when a real order is created. Both calls are rate-limited per IP (coupon 40, quote 300 per 10 minutes).
+- The test order stops **before** the code or coupon is checked: a wrong code still gets `{"success": true}`. Read the code's result in the cart instead (the quote's `code.message` on Offers stores, the `POST /public/coupon` answer otherwise).
 
-Use it for the form, the place select, delivery charges, COD availability per place, coupons (apply, then place), and that the request leaves from the browser (rule 5).
+Use it for the form, the place select, delivery charges, COD availability per place, coupons or offers (apply a code, check the cart and checkout totals), and that the request leaves from the browser (rule 5).
+
+### Offers
+
+On a store with Offers (`GET /public/promotions/<store_id>` says `enabled: true`), check in the cart and the checkout:
+
+- the totals, line savings and gift lines are the quote's, not numbers the site worked out (rule 13);
+- a code shows the server's message, applied or rejected, under the code field;
+- an automatic offer's progress message changes as you add items;
+- a gift line shows as "Free" with no quantity control, and removing it sends the offer in `removed_offers`;
+- changing the place updates delivery (free delivery shows once the place is picked);
+- the order request has `code`, `removed_offers` and `gift_choices`, and no gift lines.
+
+Ask the merchant which offers are live, or read them with `blanxer_list_offers`.
 
 ## 3. The sandbox store
 
-A sandbox store on `https://api-dev.blanxer.com` is planned for BlanxerAPI: every gateway in test mode, products with variants, weights and custom fields, delivery places with and without COD, coupons and a live flash sale. Its subdomain will be listed here when it is ready.
+A sandbox store on `https://api-dev.blanxer.com` is planned for BlanxerAPI: every gateway in test mode, products with variants, weights and custom fields, delivery places with and without COD, coupons, offers and a live flash sale. Its subdomain will be listed here when it is ready.
 
 **Until then, check the gateway and QR screens live** (see [the live check](#4-the-live-check)): the `0000000000` order creates nothing, so it never opens them.
 

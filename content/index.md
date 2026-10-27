@@ -12,8 +12,8 @@ Merchants start with one line to their AI agent:
 
 | Channel | Who uses it | What for |
 |---|---|---|
-| Public API, `https://api.blanxer.com` | The website | Store, catalog, delivery, coupons, orders, payments, tracking. No key. |
-| Blanxer MCP, `https://mcp.blanxer.com/mcp` | The agent, while building | Store data: SEO text, products and photos, categories, coupons, the site link. The merchant signs in. |
+| Public API, `https://api.blanxer.com` | The website | Store, catalog, delivery, offers and coupons, orders, payments, tracking. No key. |
+| Blanxer MCP, `https://mcp.blanxer.com/mcp` | The agent, while building | Store data: SEO text, products and photos, categories, offers and codes, the site link. The merchant signs in. |
 | Blanxer XML files | Google and Meta | Product feed and catalog sitemap |
 
 ## Install
@@ -25,7 +25,7 @@ Merchants start with one line to their AI agent:
 ## Guides
 
 - [Quickstart](https://developers.blanxer.com/api-docs/quickstart.md): the procedure, step by step
-- [The 13 hard rules](https://developers.blanxer.com/api-docs/rules.md)
+- [The 14 hard rules](https://developers.blanxer.com/api-docs/rules.md)
 - [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md) · [Catalog](https://developers.blanxer.com/api-docs/catalog.md) · [Checkout](https://developers.blanxer.com/api-docs/checkout.md) · [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md)
 - [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md) · [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md) · [Package](https://developers.blanxer.com/api-docs/package.md)
 - [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md) · [Testing](https://developers.blanxer.com/api-docs/testing.md) · [Deploy to Cloudflare](https://developers.blanxer.com/api-docs/deploy-cloudflare.md) · [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md)

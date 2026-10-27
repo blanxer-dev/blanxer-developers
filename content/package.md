@@ -1,8 +1,8 @@
 # The @blanxer-dev/storefront package
 
-> This page summarises the package's API: entry points, functions, components and the CLI. The package README and its TypeScript types have every argument and return type. The package is at version 0.1.0 and not yet published to npm.
+> This page summarises the package's API: entry points, functions, components and the CLI. The package README and its TypeScript types have every argument and return type. This page describes version 0.2.0, which adds [Offers](#offers).
 
-`@blanxer-dev/storefront` is the typed client, checkout and tooling every BlanxerAPI site uses. The starter already depends on it. Keep it (rule 2): the checkout, delivery, coupon, payment and tracking behaviour in it is copied from Blanxer's own storefront and covered by tests, and it is updated when Blanxer's checkout changes.
+`@blanxer-dev/storefront` is the typed client, checkout and tooling every BlanxerAPI site uses. The starter already depends on it. Keep it (rule 2): the checkout, delivery, offer, coupon, payment and tracking behaviour in it is copied from Blanxer's own storefront and covered by tests, and it is updated when Blanxer's checkout changes.
 
 ```bash
 npm install @blanxer-dev/storefront
@@ -26,11 +26,11 @@ No key, token or secret is ever needed (rule 6).
 | Import | Runs on | For |
 |---|---|---|
 | `@blanxer-dev/storefront/server` | Server only | Reading store and catalog data |
-| `@blanxer-dev/storefront/client` | Browser only | Orders, coupons, payments, holds, tracking, forms, events |
-| `@blanxer-dev/storefront/react` | Browser (client components) | Provider, cart, product, checkout, the three required pages, forms |
+| `@blanxer-dev/storefront/client` | Browser only | Orders, offers and the cart quote, coupons, payments, holds, tracking, forms, events |
+| `@blanxer-dev/storefront/react` | Browser (client components) | Provider, cart, offers, product, checkout, the three required pages, forms |
 | `@blanxer-dev/storefront/seo` | Server | Metadata and JSON-LD |
 | `@blanxer-dev/storefront/next` | Server | Route handlers and the image loader |
-| `@blanxer-dev/storefront/core` | Both | The pure logic: delivery, COD rule, coupons, payment method list, order payload, custom fields, validation, variants, formatting, types |
+| `@blanxer-dev/storefront/core` | Both | The pure logic: delivery, COD rule, coupons, the quote request and offer display helpers (no discount maths), payment method list, order payload, custom fields, validation, variants, formatting, types |
 | `@blanxer-dev/storefront/image-loader` | — | The default image loader as a default export, for `loaderFile` |
 | `@blanxer-dev/storefront/styles.css` | — | Default styles for the `bx-*` classes (optional) |
 | `blanxer-storefront` (CLI) | Your terminal | `check` and `images` |
@@ -53,6 +53,7 @@ Server-only data functions. Each uses `fetch` with `next: { revalidate: 60 }` an
 | `getSaleProducts()` | Products on sale |
 | `getDeliveryCharges()` | `{ defaults, places }` |
 | `getFlashSales(opts?)` | `{ server_time, sales }` (not cached by default) |
+| `getOffers(opts?)` | `{ enabled, data, settings, server_time }` from `GET /public/promotions/:store_id`, cached 30 s. `enabled: false` when the store isn't on Offers |
 | `getBlogPosts({ cursor, category, tag, author, q })` / `getBlogPost(slug)` | `{ items, next_cursor, has_more, all_categories }` / the post or `null` |
 | `getForm(slug)` | The form or `null` |
 | `getHomeSeo()` | `{ seo_title, seo_description, seo_image }` from the store's landing page (empty on stores without one) |
@@ -83,7 +84,9 @@ Browser calls. This entry point imports `client-only`, so importing it from a Se
 | Function | Calls |
 |---|---|
 | `placeOrder(storeId, payload)` | `POST /order/:store_id` |
-| `applyCoupon({ store, code, products })` | `POST /public/coupon` |
+| `applyCoupon({ store, code, products })` | `POST /public/coupon` (stores not on Offers) |
+| `getOffers(storeId)` / `getProductOffers(storeId, productId)` | `GET /public/promotions/:store_id` / `.../product/:product_id`. Never throw: an error or an API without Offers is `enabled: false` |
+| `quoteCart(storeId, body)` | `POST /public/promotions/:store_id/quote` → the quote, or `null` when the store isn't on Offers. Throws `QuoteUnavailableError` on a rate limit (429) or a server error. Build `body` with `buildQuoteRequest` from `/core` |
 | `startPayment(method, { store, order, url? })` | The method's `/payment/*/init`. Returns the next step: `none`, `redirect`, `form`, `qr` or `fonepay_checkout` |
 | `followPayment(start)` | Performs that step: navigates, or posts the eSewa/NPX form |
 | `checkPayment('qr' \| 'fonepay_checkout', transaction)` | `GET /payment/dynamic_qr/check/:transaction` or `/payment/fonepay_checkout/check/:transaction` → `boolean` |
@@ -105,17 +108,17 @@ Client components and hooks. **Unstyled by default**: each element has a `bx-*` 
 
 | Export | What it is |
 |---|---|
-| `<BlanxerProvider store apiBase? theme? notify?>` | Wrap the app. Gives components the store config, holds the cart, remembers `?promo=`, sends the session ping, switches the Meta CAPI relay, sets the theme variables, shows toasts |
+| `<BlanxerProvider store apiBase? theme? notify?>` | Wrap the app. Gives components the store config, holds the cart and the offers (`OffersProvider`), remembers `?promo=`, sends the session ping, switches the Meta CAPI relay, sets the theme variables, shows toasts |
 | `useBlanxer()` / `useStore()` | `{ store, storeId, apiBase, notify }` / the store |
 | `CartProvider`, `useCart()` | The cart in `localStorage['cart_items']`, with line selection (`cart_selection`) |
-| `<CartLines>`, `<CartView>` | Cart lines (optionally selectable and editable) and a full cart page |
+| `<CartLines>`, `<CartView>` | Cart lines (optionally selectable and editable) and a full cart page. On an Offers store they show the quote: offer rows, gift lines marked "Free", progress and savings |
 | `<AddToCart product>` | Builds the cart line (variant `_id`, weight, custom fields, customization charge). Options to show the price, variants, custom fields, quantity, flash sale and stock alert |
 | `useProductSelection(product)`, `<VariantPicker>`, `<CustomFields>`, `<QuantityPicker>` | Build your own product form from the same selection state |
 | `<FlashSaleStrip productId>` | Countdown, units left, per-order limit, notify me |
-| `<Checkout>` | The whole checkout: form, place select, delivery charge, coupons, payment methods, every gateway, QR modals with the hold timer. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md). |
+| `<Checkout>` | The whole checkout: form, place select, delivery charge, offers or coupons, payment methods, every gateway, QR modals with the hold timer. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md). |
 | `<PaymentSuccess>` | `/payment/success` |
 | `<PaymentFailed method?>` | `/payment/failed` |
-| `<OrderTracking orderId fromCheckout?>` | `/track/[id]`, with cancel and review |
+| `<OrderTracking orderId fromCheckout?>` | `/track/[id]`, with cancel and review, and the order's offers |
 | `<BlanxerForm form>` | A Blanxer custom form (from `getForm()`) |
 | `<StockAlertForm product variantId?>` | Back-in-stock "Notify me" (alias `BackInStockForm`) |
 | `<PickupChoice>` + `usePickupStock(on, lines)` | Store pickup: "How do you want it?" and the pickup outlets with what each has of the cart (0.4+, see Checkout → Store pickup). `Checkout` shows it by itself |
@@ -208,6 +211,49 @@ export default function Page() {
 - Payment methods are shown by name; logos are opt-in through `paymentMethodIcons`.
 - The package re-selects a payment method that disappears, re-checks the coupon when the cart total changes, and shows per-method payment-start errors. See [Checkout](https://developers.blanxer.com/api-docs/checkout.md).
 
+## Offers
+
+From 0.2.0 the package supports stores on Blanxer's Offers plugin. The server prices the cart; the package shows its quote and **never computes a discount** (rule 13). `CartView`, `CartLines`, `Checkout` and `OrderTracking` switch to Offers by themselves when the store has it on, and keep the coupon flow when it doesn't. The API it calls: [Checkout → Offers](https://developers.blanxer.com/api-docs/checkout.md#offers).
+
+Only stores whose `check_domain` carries the `offers` plugin are asked; for every other store the package makes no offers call. A 404 (an API without Offers yet), a network error or a non-JSON answer means offers off: the coupon flow, with no error shown.
+
+### Hooks
+
+| Hook | Returns |
+|---|---|
+| `useOffers()` | `{ enabled, offers, display, code, setCode, removedOffers, removeOffer, restoreOffer, giftChoices, chooseGift, clearChoices, clockOffset, ready, refresh }`. `enabled` is the live flag; `display` the store's offer display settings with defaults filled in. The code is kept in `localStorage['promo_code']` (also set by `?promo=`) |
+| `useCartQuote(opts?)` | `{ quote, request, fresh, loading, error, refresh }`. Quotes the selected cart lines, debounced, again when the lines, code, place, payment method or phone change; it cancels the request it replaces and never shows an older answer. `opts`: `lines`, `place`, `paymentMethod`, `phone`, `code`, `debounceMs`, `enabled` |
+| `useProductOffers(productId)` | The offers that touch one product |
+
+### Components
+
+| Component | What |
+|---|---|
+| `<OfferBadges product>`, `<OfferCardHint product>` | Badges on a product card or gallery, and the line under the price |
+| `<ProductOffers product>` | The product-page blocks: tier table, delivery / gift / code notes with countdowns, "Bundle & save". Also on their own: `<OfferTierTable>`, `<OfferNotes>`, `<BundleOffer>` |
+| `<OfferProgress quote>`, `<OfferMessages quote>`, `<OfferSummary quote>`, `<OfferGiftPicker quote>` | Cart and checkout pieces: progress bar, the server's messages, the savings rows, the gift choice |
+| `<OfferCodeField request quote>` | The code field with the server's message. `useOfferCode` to build your own |
+| `<OffersList>`, `<OfferTopBar>`, `<OffersLink>`, `<OfferCodeChip code>` | An Offers page, the top bar and the nav link (both link to `/offers` by default) |
+
+Each one follows the store's display settings (`badges`, `cart_progress`, `code_field`, `top_bar`, `offers_page`, ...) and renders nothing on a store without Offers. Restyle them with the `bx-offer-*` classes; badge colours arrive as `--bx-offer-tone`.
+
+```tsx
+'use client';
+import { useOffers, useCartQuote, OfferSummary } from '@blanxer-dev/storefront/react';
+
+export function MiniCartTotal() {
+  const { enabled } = useOffers();
+  const { quote } = useCartQuote();
+  if (!enabled || !quote) return null;
+  // the server's numbers, shown as they are
+  return <OfferSummary quote={quote} />;
+}
+```
+
+### Core helpers
+
+`/core` has the request side and display helpers, with no discount maths: `buildQuoteRequest` (leaves out lines the server added), `offerOrderFields` (`code`, `removed_offers`, `gift_choices` for the order), `codeFieldError` (reads the order's `{fields: {code}}` error), `createLatest` (newest request wins), `upsellProgress`, `summaryRows`, `quoteLineFor`, `addedLines`, `productBadges`, `tierRows`, `offersDisplay`, and the offer, quote and settings types. `buildOrderPayload` takes `offers: { code, removedOffers, giftChoices }`.
+
 ## `@blanxer-dev/storefront/seo`
 
 | Export | Returns |
@@ -267,4 +313,4 @@ Resizes images (never enlarges; default max width 2560, `--max-width` to change 
 
 ## Versions
 
-The checkout is versioned: checkout v1 matches Blanxer's storefront `main` at `cabd695` (stock holds and flash sales included). Partial payment, offers and agreed delivery come in checkout v1.1. Update the package to get checkout fixes; the site code doesn't change.
+The checkout is versioned: checkout v1 matches Blanxer's storefront `main` at `cabd695` (stock holds and flash sales included). Package 0.2.0 adds Offers to the cart, checkout and tracking; a site on 0.1.x still places orders on a store with Offers (the server applies the offers), but its cart doesn't show them, so the price on the page differs from the order. Update to 0.2.0. Partial payment and agreed delivery are not in the package yet. Update the package to get checkout fixes; the site code doesn't change.

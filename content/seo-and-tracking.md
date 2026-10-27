@@ -99,7 +99,7 @@ Where the Blanxer-hosted storefront differs: its product `<title>` is the name (
 - `noindex` on `/cart`, `/checkout`, `/payment/success`, `/payment/failed`, `/track/[id]`, `/search`, and blog posts with `no_index`.
 - On stores without a landing page, confirm the home title and description (the store name and description) with the merchant.
 
-To improve the text, use the MCP: `blanxer_audit_seo`, then `blanxer_update_product_status_seo`, `blanxer_bulk_update_products`, `blanxer_bulk_update_categories_seo`, `blanxer_update_brand`. Confirm bulk changes first (rule 13). See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md).
+To improve the text, use the MCP: `blanxer_audit_seo`, then `blanxer_update_product_status_seo`, `blanxer_bulk_update_products`, `blanxer_bulk_update_categories_seo`, `blanxer_update_brand`. Confirm bulk changes first (rule 14). See [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md).
 
 ## JSON-LD
 
