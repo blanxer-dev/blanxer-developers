@@ -118,6 +118,7 @@ Client components and hooks. **Unstyled by default**: each element has a `bx-*` 
 | `<OrderTracking orderId fromCheckout?>` | `/track/[id]`, with cancel and review |
 | `<BlanxerForm form>` | A Blanxer custom form (from `getForm()`) |
 | `<StockAlertForm product variantId?>` | Back-in-stock "Notify me" (alias `BackInStockForm`) |
+| `<PickupChoice>` + `usePickupStock(on, lines)` | Store pickup: "How do you want it?" and the pickup outlets with what each has of the cart (0.4+, see Checkout → Store pickup). `Checkout` shows it by itself |
 | `<Pixel>` | Meta Pixel, GA4, GTM and Clarity from the store's plugins |
 | `<Money amount>`, `useMoney()`, `<BlanxerImage>` | Prices with the store's currency label; `next/image` with the Blanxer loader |
 
