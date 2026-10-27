@@ -499,6 +499,8 @@ interface OrderRequest {
   code?: string;                     // Offers stores: the typed code or '' (≤ 40)
   removed_offers?: string[];         // Offers stores: automatic offers the shopper took off (≤ 20)
   gift_choices?: Record<string, string>; // Offers stores: { [offer id]: 'productId|variantId' }
+  fulfilment?: 'delivery' | 'pickup'; // store pickup, see "Store pickup" below (missing = delivery)
+  pickup_outlet?: string;            // the pickup outlet's _id, with fulfilment 'pickup'
 }
 ```
 
@@ -542,7 +544,7 @@ A product can have a print add-on (`print_addon` on the product): the shopper pi
 3. Email and sender email when the store requires them (HTTP 401, see the table above).
 4. Lines with an empty `product` are dropped; if none is left: `Product is required`. Every product exists in this store and is `Active`, else `Either of the selected product is already deleted`.
 5. A product with variants has a `variant`, else `Variant selection required for this product`; the print choice (see above); the variant exists, else `Either of the selected product has been modified, please add to cart again`.
-6. Stock, unless the product has `continue_selling`: `Either of the selected product is out of stock`. Stores with advanced inventory are checked against the website outlet's stock.
+6. Stock, unless the product has `continue_selling`: `Either of the selected product is out of stock`. Stores with advanced inventory are checked against the website outlet's stock (a store pickup: the pickup outlet's).
 7. Live flash sale limits: `Flash sale: you can buy at most N of "<name>" per order.`
 8. The stock hold. When the last units sit in other shoppers' checkouts: `The last units of an item in your cart are in other shoppers' checkouts right now. Please try again in about N minutes.`
 9. The delivery place and COD (messages above).
@@ -581,6 +583,52 @@ Right after a successful response the component stores, in `sessionStorage`:
 
 - `checkout_order_id` = `_id` (the success page needs it);
 - `pixel_purchase_pending` = the Purchase event data, including the `event_id` sent in `meta`.
+
+## Store pickup
+
+Stores on the Platinum plan with advanced inventory and two or more outlets can let shoppers collect an order at an outlet (Setting → Checkout → Store pickup). The `Checkout` component of `@blanxer-dev/storefront` 0.4+ does all of this; read on if you build your own.
+
+**Is it on?** `check_domain` returns:
+
+```ts
+store_pickup: {
+  outlets: { _id: string; name: string; address?: string; contact_number?: string }[]; // [] = no pickup
+  pay_at_store?: boolean; // false = pickups are paid online in full (no cash on delivery)
+  advance?: boolean;      // true = a pay-at-store pickup pays part online first (the quote says how much)
+}
+```
+
+Older backends send no `store_pickup`: treat it as off.
+
+**Which store has the cart?**
+
+```http
+POST /order/public/pickup-stock
+{ "store_id": "<store_id>", "lines": [{ "product": "<id>", "variant": "", "quantity": 2 }] }
+```
+
+```json
+{
+  "outlets": [
+    { "_id": "…", "name": "Thamel", "address": "Thamel Marg", "in_stock": false,
+      "short": [{ "product_id": "…", "name": "Pashmina", "wanted": 2, "available": 1 }] },
+    { "_id": "…", "name": "Lalitpur", "address": "Jhamsikhel", "in_stock": true, "short": [] }
+  ],
+  "recommended": "<Lalitpur _id>"
+}
+```
+
+Stock is each outlet's own, minus other shoppers' checkouts. `recommended` is the first outlet (in the store's order) that has the whole cart, or `null`. Show each outlet with "In stock" / "Only 1 left here", and suggest the recommended one when the shopper's pick is short. Same rate limit as the stock check.
+
+**The order.** Send `fulfilment: 'pickup'` and `pickup_outlet: <_id>` with the usual fields; the address is still required. The server:
+
+- charges **no delivery**; the response's `delivery_charge` is `0` and it adds `fulfilment: { type: 'pickup', outlet: {…} }`;
+- takes the stock at the pickup outlet (a short line is refused like any stock error, for that outlet);
+- treats `paymentMethod: 'COD'` as **pay at the store**. Show the tile as "Pay at store", not "Cash on delivery". With `pay_at_store: false` it refuses COD: `This store asks for pickup orders to be paid online.`;
+- never asks the delivery advance. With `advance: true`, a pay-at-store pickup needs `advance_via` (an online method) exactly like the delivery advance; the amount comes from the quote with `fulfilment: 'pickup'` (`POST /public/promotions/<store_id>/quote`), which also prices the pickup with no delivery. Without it: `Pay the Rs 500 advance online to pay the rest at the store.`
+- `fields.pickup_outlet` = "Choose the store you will pick up from." for an outlet that isn't a pickup outlet; "Store pickup is not available here. Choose home delivery." when the store turned it off.
+
+Online payments work as usual. The order is a website sale; the tracking read (`GET /order/public/<store_id>/id/<order_id>`) carries `fulfilment: { type: 'pickup', outlet_name }`, so show "Store pickup · Thamel" instead of the delivery charge.
 
 ## Payment flows
 
