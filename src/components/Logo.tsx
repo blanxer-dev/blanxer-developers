@@ -1,15 +1,16 @@
+import Image from "next/image";
+
 /**
- * The BlanxerAPI wordmark: written as a code tag, `<blanxer API>`, with API in bold purple.
- * Plain text in the mono face (not an image), so it stays sharp at every size.
+ * The main Blanxer logo, the same as blanxer.com's nav, with "API" beside it in the mono face
+ * (owner, 2026-11-06). Replaces the old `<blanxer API>` text wordmark in the nav.
  */
 export function Logo({ className = "", size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
-  const text = size === "lg" ? "text-3xl sm:text-4xl" : size === "sm" ? "text-[15px]" : "text-lg";
+  const h = size === "lg" ? "h-9 sm:h-10" : size === "sm" ? "h-5" : "h-6 sm:h-7";
+  const label = size === "lg" ? "text-2xl sm:text-3xl" : size === "sm" ? "text-[13px]" : "text-[15px]";
   return (
-    <span className={`inline-flex items-baseline font-mono tracking-tight whitespace-nowrap ${text} ${className}`}>
-      <span className="text-faint">&lt;</span>
-      <span className="font-medium text-fg">blanxer</span>
-      <span className="font-extrabold text-accent-text">&nbsp;API</span>
-      <span className="text-faint">&gt;</span>
+    <span className={`inline-flex items-center whitespace-nowrap ${className}`}>
+      <Image src="/brand/logo-dark.svg" alt="Blanxer" width={408} height={113} priority className={`w-auto ${h}`} />
+      <span className={`ml-2.5 border-l border-border pl-2.5 font-mono font-bold tracking-tight text-accent-text ${label}`}>API</span>
     </span>
   );
 }
