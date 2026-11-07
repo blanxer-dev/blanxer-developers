@@ -34,6 +34,7 @@ In the site: `getStore()` and `getStoreId()` from `@blanxer-dev/storefront/serve
 | `addons`, `setting` | Payment add-ons, and store settings. The payment-credential keys in `setting` are masked to `'yes'` / `''`; other keys (delivery settings and more) come as stored. See [Checkout → Payment methods](https://developers.blanxer.com/api-docs/checkout.md#payment-methods). |
 | `plugins[]` | `{name, details}`: tracking tags and small features (below) |
 | `use_advanced_inventory` | Stock is per outlet. See [Catalog → Stock](https://developers.blanxer.com/api-docs/catalog.md#stock). |
+| `online_fulfilment` | `{pooled, display_stock, show_stores, checkout_plan}`: whether the store sells online from several shops. Not pooled (or missing on older backends) = nothing changes. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md). |
 | `customer_program` | `{enabled, loyalty_enabled, membership_enabled, back_in_stock: {enabled}, login}` |
 | `under_construction` | `off`, `sub`, `cus` or `both`. Controls the **Blanxer-hosted** site only. Ignore it in a custom site. |
 | `kyc_status`, `blanxer_pay`, `loyalty`, `current_template` | Not needed by a custom site |

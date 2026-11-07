@@ -26,7 +26,7 @@ Merchants start with one line to their AI agent:
 
 - [Quickstart](https://developers.blanxer.com/api-docs/quickstart.md): the procedure, step by step
 - [The 14 hard rules](https://developers.blanxer.com/api-docs/rules.md)
-- [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md) · [Catalog](https://developers.blanxer.com/api-docs/catalog.md) · [Checkout](https://developers.blanxer.com/api-docs/checkout.md) · [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md)
+- [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md) · [Catalog](https://developers.blanxer.com/api-docs/catalog.md) · [Checkout](https://developers.blanxer.com/api-docs/checkout.md) · [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md) · [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md)
 - [SEO and tracking](https://developers.blanxer.com/api-docs/seo-and-tracking.md) · [Images and speed](https://developers.blanxer.com/api-docs/images-and-speed.md) · [Package](https://developers.blanxer.com/api-docs/package.md)
 - [MCP for your website](https://developers.blanxer.com/api-docs/mcp-for-website.md) · [Testing](https://developers.blanxer.com/api-docs/testing.md) · [Deploy to Cloudflare](https://developers.blanxer.com/api-docs/deploy-cloudflare.md) · [Troubleshooting](https://developers.blanxer.com/api-docs/troubleshooting.md)
 - [OpenAPI spec](https://developers.blanxer.com/openapi.yaml) for every endpoint a site uses

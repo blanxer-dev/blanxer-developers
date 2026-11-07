@@ -199,6 +199,10 @@ When `check_domain.use_advanced_inventory` is true and the store has a website o
 - list items' `in_stock` ignores `continue_selling` (`quantity > 0`), and the Blanxer storefront's product page does the same (out of stock = `stock < q`). Do the same. (The order check on the server still lets a `continue_selling` product through; showing it as out of stock is the safe side.)
 - the brand-products endpoint does not apply the outlet's stock (it returns the global quantity). Prefer the product page's own check.
 
+### Stores selling from several stores
+
+When `check_domain.online_fulfilment.pooled` is true (Blanxer support switches it on per store), `quantity` can be the total of several shops instead of the website outlet's. The fields and the rules above don't change; show the number as you already do. With `online_fulfilment.show_stores`, the product page can also list which shops have it, as bands, never counts. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#stock-on-product-pages).
+
 ### What to show
 
 - Out of stock: disable Add to cart and show the back-in-stock form when the store has it on. See [Forms and extras](https://developers.blanxer.com/api-docs/forms-and-extras.md#back-in-stock-alerts).

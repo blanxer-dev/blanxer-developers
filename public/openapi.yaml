@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BlanxerAPI (public endpoints for custom store websites)
-  version: 1.1.0
+  version: 1.2.0
   summary: The public Blanxer API endpoints a custom Next.js store website uses.
   description: |
     Only the endpoints a BlanxerAPI custom site uses. No admin routes, no customer
@@ -13,6 +13,11 @@ info:
       the browser: several are rate-limited per IP.
     - Stores on Offers: the server prices the cart (`POST /public/promotions/{store_id}/quote`).
       A site shows the quote and never computes a discount.
+    - Stores selling from several stores (`check_domain.online_fulfilment.checkout_plan`, switched
+      on by Blanxer support per store): the server prices checkout with the checkout plan
+      (`POST /order/public/checkout-plan`), one checkout may become several orders, and one online
+      payment covers them. Every other store is unchanged; the new fields are additive.
+      Guide: https://developers.blanxer.com/api-docs/pooled-stock.md
     - Errors: HTTP 400 `{message}`; validation errors `{error_type: "zod_validation", fields}`
       (most routes) or `{fields}` (check_domain and the eSewa, Khalti and FonePay starts);
       some field errors use HTTP 401 `{fields}`; rate limits HTTP 429 with a plain-text body.
@@ -162,6 +167,31 @@ paths:
           $ref: '#/components/responses/MessageError'
         '500':
           $ref: '#/components/responses/CastError'
+
+  /order/public/store-availability/{store_id}/{product_id}:
+    get:
+      tags: [Catalog]
+      operationId: storeAvailability
+      summary: Which of the store's shops have a product (stores selling from several stores, with show_stores on)
+      description: |
+        Only when `check_domain.online_fulfilment.show_stores` is true. Bands only, never counts:
+        `in_stock` (3 or more) or `few` (1–2), after the units each shop keeps for walk-ins. Shops
+        with none are left out. `show_stores` off, or a store that isn't pooled:
+        `{enabled: false, stores: []}`. Cached 60 seconds.
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The shops that have it
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StoreAvailability' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /product/public/{store_id}/category/{slug}:
     get:
@@ -641,6 +671,49 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
 
+  /order/public/checkout-plan:
+    post:
+      tags: [Checkout]
+      operationId: checkoutPlan
+      summary: The checkout priced by the server, parcel by parcel (browser only; 120 per 10 minutes per IP)
+      description: |
+        A store with `check_domain.online_fulfilment.checkout_plan: true` MUST price checkout with
+        this, never with the delivery table: each shop may have its own delivery charge, and one
+        checkout may arrive in several parcels. Any store may call it; a store that isn't pooled
+        gets one parcel from its website outlet at its usual charges (such stores keep the browser
+        calculation). Holds nothing. `plan_id` is valid for 30 minutes: send it as
+        `checkout_plan_id` with the order. A pickup is always one parcel at `pickup_outlet`, with
+        no delivery.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutPlanRequest' }
+      responses:
+        '200':
+          description: The plan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/CheckoutPlan' }
+        '400':
+          description: |
+            `stock_error` `OUT_OF_STOCK` when even the shops together can't fill a line (`available`
+            = the pool's units); `Selected delivery city not found…` with
+            `error_code: UNKNOWN_PLACE`; `Add a product to the cart`; or a validation error.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/StockError'
+                  - $ref: '#/components/schemas/CodedError'
+                  - $ref: '#/components/schemas/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
   /order/{store_id}:
     post:
       tags: [Checkout]
@@ -659,6 +732,12 @@ paths:
         the shopper's lines (never lines with `added_by`). A rejected code is HTTP 401
         `{fields: {code: <message>}}`. An offer whose last use another order just took is HTTP
         400 `{message}` ("... has just been fully used. Please review your order.").
+        Stores selling from several stores (`online_fulfilment.checkout_plan`): send the plan's
+        `plan_id` as `checkout_plan_id`. The quoted delivery is final. An expired, unknown or
+        mismatched plan is HTTP 409 `CHECKOUT_PLAN_STALE` with a fresh `plan`: show it and let the
+        shopper place again with `plan.plan_id`. Without `checkout_plan_id` the server works a plan
+        out itself. The top-level response fields then describe the whole checkout (`_id` and
+        `order_number` are parcel 1's), plus `checkout_group`, `plan_changed` and `orders`.
       parameters:
         - $ref: '#/components/parameters/StoreId'
       requestBody:
@@ -682,6 +761,11 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/FieldError'
+        '409':
+          description: 'Stores selling from several stores: the checkout plan expired (30 minutes), is unknown or no longer matches the cart'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutPlanStale' }
         '429':
           $ref: '#/components/responses/RateLimited'
         '500':
@@ -722,6 +806,8 @@ paths:
                   payment_url: { type: string, format: uri }
                   expires_at: { type: string }
                   expires_in: { type: number }
+                  checkout_group: { $ref: '#/components/schemas/PaymentCheckoutGroup' }
+                  orders: { $ref: '#/components/schemas/PaymentGroupOrders' }
         '400':
           $ref: '#/components/responses/PaymentStartError'
 
@@ -773,6 +859,7 @@ paths:
       tags: [Payments]
       operationId: checkQr
       summary: Has the QR payment arrived?
+      description: '`transaction` from the start; for a split checkout it is the checkout''s transaction.'
       parameters:
         - name: transaction
           in: path
@@ -829,6 +916,7 @@ paths:
       tags: [Payments]
       operationId: checkFonepayCheckout
       summary: Has the Checkout by Fonepay payment arrived? (asks Fonepay)
+      description: '`transaction` from the start; for a split checkout it is the checkout''s transaction.'
       parameters:
         - name: transaction
           in: path
@@ -894,6 +982,7 @@ paths:
       tags: [Orders]
       operationId: releaseHold
       summary: Give an unpaid order's held units back early (QR timer ran out, or the shopper confirmed closing the QR)
+      description: For an order of a split checkout (stores selling from several stores) it releases the holds of every order in the checkout.
       requestBody:
         required: true
         content:
@@ -961,6 +1050,14 @@ paths:
                 store_id: { type: string }
                 order_id: { type: string }
                 phone_number: { type: string, minLength: 10, maxLength: 10 }
+                scope:
+                  type: string
+                  enum: [order, group]
+                  default: order
+                  description: |
+                    A split checkout (the tracking read has `linked_orders`): `order` cancels only this
+                    order, `group` every order of the checkout. An unpaid online checkout always
+                    cancels whole.
       responses:
         '200':
           description: Cancelled
@@ -1490,6 +1587,22 @@ components:
         plan: { type: string, description: "'' (free), pos, basic, premium, plus, platinum" }
         under_construction: { type: string, enum: ['off', sub, cus, both], description: "Blanxer-hosted site only" }
         use_advanced_inventory: { type: boolean }
+        online_fulfilment: { $ref: '#/components/schemas/OnlineFulfilment' }
+        store_pickup:
+          type: object
+          description: Store pickup (Platinum, advanced inventory). Missing or `outlets` empty = no pickup.
+          properties:
+            outlets:
+              type: array
+              items:
+                type: object
+                properties:
+                  _id: { type: string }
+                  name: { type: string }
+                  address: { type: string }
+                  contact_number: { type: string }
+            pay_at_store: { type: boolean, description: "false = pickups are paid online in full" }
+            advance: { type: boolean, description: "true = a pay-at-store pickup pays part online first" }
         checkout:
           type: object
           properties:
@@ -2161,6 +2274,14 @@ components:
           type: object
           additionalProperties: { type: string, maxLength: 80 }
           description: "Stores on Offers. The gift picked per offer: `{ <offer id>: '<product_id>|<variant_id>' }`."
+        fulfilment: { type: string, enum: [delivery, pickup], default: delivery, description: "Store pickup: 'pickup' with pickup_outlet" }
+        pickup_outlet: { type: string, description: "The pickup outlet's _id, with fulfilment 'pickup'" }
+        checkout_plan_id:
+          type: string
+          description: |
+            Stores selling from several stores: the checkout plan's `plan_id`. It must match the
+            order's lines (product, variant, quantity, bundle picks, customization charge), place,
+            fulfilment and pickup outlet; else HTTP 409 `CHECKOUT_PLAN_STALE`.
 
     OrderResponse:
       type: object
@@ -2184,13 +2305,30 @@ components:
               items: { $ref: '#/components/schemas/OfferApplication' }
             code: { $ref: '#/components/schemas/QuoteCodeResult' }
             totals: { $ref: '#/components/schemas/QuoteTotals' }
+        amount_to_pay: { type: number, description: "Split checkout: what the one online payment charges" }
+        advance:
+          type: object
+          description: "Split checkout: the checkout's advance"
+          additionalProperties: true
+        checkout_group:
+          description: Stores selling from several stores. null when the checkout wasn't split.
+          oneOf:
+            - $ref: '#/components/schemas/CheckoutGroupRef'
+            - type: 'null'
+        plan_changed: { type: boolean, description: "The parcels changed since the plan (a race took the last unit); the delivery charged is still the plan's" }
+        orders:
+          type: array
+          description: Stores selling from several stores. Every order the checkout made, by parcel.
+          items: { $ref: '#/components/schemas/CheckoutOrderRow' }
 
     PaymentStart:
       type: object
-      required: [store, order, url]
+      required: [store, url]
+      description: Send `order`, or (a split checkout) `checkout_group` instead.
       properties:
         store: { type: string, description: "Store id" }
-        order: { type: string, description: "Order _id" }
+        order: { type: string, description: "Order _id. For a split checkout any of its orders; the payment covers the whole checkout." }
+        checkout_group: { type: string, description: "Instead of order: the checkout_group id of a split checkout" }
         url:
           type: string
           description: |
@@ -2201,6 +2339,8 @@ components:
       type: object
       properties:
         url: { type: string, format: uri }
+        checkout_group: { $ref: '#/components/schemas/PaymentCheckoutGroup' }
+        orders: { $ref: '#/components/schemas/PaymentGroupOrders' }
 
     EsewaForm:
       type: object
@@ -2217,6 +2357,8 @@ components:
         failure_url: { type: string }
         signed_field_names: { type: string }
         signature: { type: string }
+        checkout_group: { $ref: '#/components/schemas/PaymentCheckoutGroup' }
+        orders: { $ref: '#/components/schemas/PaymentGroupOrders' }
 
     QrStart:
       type: object
@@ -2226,6 +2368,8 @@ components:
         amount: { type: number }
         socket_url: { type: string }
         qr_message: { type: string, description: "Render as a QR code" }
+        checkout_group: { $ref: '#/components/schemas/PaymentCheckoutGroup' }
+        orders: { $ref: '#/components/schemas/PaymentGroupOrders' }
 
     TrackedOrder:
       type: object
@@ -2292,6 +2436,15 @@ components:
               detail: { type: object, additionalProperties: true }
         promo_total: { type: number, description: "What the offers took off the goods (part of discount.d_value)" }
         delivery_charge_before_promo: { type: number, description: "The delivery charge before a delivery offer" }
+        checkout_group:
+          description: Stores selling from several stores. This order's place in a split checkout; null when not split.
+          oneOf:
+            - $ref: '#/components/schemas/CheckoutGroup'
+            - type: 'null'
+        linked_orders:
+          type: array
+          description: Stores selling from several stores. The checkout's other orders; [] when not split.
+          items: { $ref: '#/components/schemas/LinkedOrder' }
         review:
           type: object
           properties:
@@ -2410,6 +2563,232 @@ components:
             blogs:
               type: array
               items: { type: object, additionalProperties: true }
+
+    CodedError:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+        error_code: { type: string, description: "A stable code for the refusal, e.g. UNKNOWN_PLACE" }
+
+    StockError:
+      type: object
+      properties:
+        message: { type: string }
+        stock_error:
+          type: object
+          properties:
+            code: { type: string, examples: [OUT_OF_STOCK] }
+            lines:
+              type: array
+              items: { type: object, additionalProperties: true, description: "Each short line; `available` = the units there are" }
+
+    OnlineFulfilment:
+      type: object
+      description: |
+        Selling online from several stores. Missing on older backends = not pooled. Not pooled:
+        `{pooled: false, display_stock: website_outlet, show_stores: false, checkout_plan: false}`.
+      properties:
+        pooled: { type: boolean }
+        display_stock: { type: string, enum: [combined, website_outlet], description: "combined = product quantity is the pool's total; website_outlet = the website outlet's" }
+        show_stores: { type: boolean, description: "The product page may list the shops that have it (GET /order/public/store-availability)" }
+        checkout_plan: { type: boolean, description: "true = the site MUST price checkout with POST /order/public/checkout-plan" }
+
+    StoreAvailability:
+      type: object
+      properties:
+        success: { type: boolean }
+        enabled: { type: boolean }
+        stores:
+          type: array
+          items:
+            type: object
+            properties:
+              _id: { type: string }
+              name: { type: string }
+              city: { type: string }
+              pickup: { type: boolean, description: "The shop is a store-pickup outlet" }
+              variants:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    variant: { type: string, description: "'' for a product without variants" }
+                    band: { type: string, enum: [in_stock, few], description: "in_stock = 3 or more, few = 1–2" }
+
+    CheckoutPlanRequest:
+      type: object
+      required: [store_id, products]
+      properties:
+        store_id: { type: string }
+        products:
+          type: array
+          description: The shopper's lines, as the order will send them. Never a line with `added_by`.
+          items:
+            type: object
+            required: [product, quantity]
+            properties:
+              product: { type: string }
+              variant: { type: string, default: '' }
+              quantity: { type: integer, minimum: 1 }
+              customization_charge: { type: number, minimum: 0, default: 0 }
+              bundle_picks: { type: array, items: {} }
+        place: { type: string, description: "The delivery place (customer_address_city). Required unless fulfilment is pickup" }
+        payment: { type: string, enum: [cod, online] }
+        fulfilment: { type: string, enum: [delivery, pickup], default: delivery }
+        pickup_outlet: { type: [string, 'null'] }
+        code: { type: string, default: '' }
+        coupon: { type: string, default: '' }
+        gift_choices: { type: object, additionalProperties: { type: string } }
+        removed_offers: { type: array, items: { type: string } }
+        phone: { type: string, default: '' }
+
+    PlanParcel:
+      type: object
+      properties:
+        index: { type: integer, description: "1-based" }
+        outlet:
+          type: object
+          properties:
+            _id: { type: string }
+            name: { type: string }
+            city: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              product: { type: string }
+              variant: { type: string }
+              name: { type: string }
+              variant_name: { type: string }
+              quantity: { type: number }
+              unit_price: { type: number }
+              line_total: { type: number }
+              gift: { type: boolean }
+              bundle: {}
+        weight: { type: number, description: kg }
+        goods: { type: number }
+        customization: { type: number }
+        discount: { type: number, description: "This parcel's share of the order discount" }
+        delivery_base: { type: number, description: "Before a delivery offer" }
+        delivery: { type: number, description: "After a delivery offer" }
+        total: { type: number, description: "goods + customization − discount + delivery" }
+        advance: { type: number, description: "This parcel's share of the advance" }
+        cod_to_collect: { type: number }
+
+    CheckoutPlan:
+      type: object
+      properties:
+        plan_id: { type: string, description: "Valid 30 minutes; send as checkout_plan_id" }
+        expires_at: { type: string, format: date-time }
+        pooled: { type: boolean }
+        split: { type: boolean }
+        place: { type: string }
+        cod_available: { type: boolean }
+        parcels:
+          type: array
+          items: { $ref: '#/components/schemas/PlanParcel' }
+        totals:
+          type: object
+          properties:
+            goods: { type: number }
+            customization: { type: number }
+            discount: { type: number }
+            member_discount: { type: number }
+            delivery_base: { type: number }
+            delivery: { type: number }
+            total: { type: number }
+        delivery_label: { type: string, examples: ['Delivery: Pokhara Rs 150 · Butwal free'] }
+        offers:
+          description: "Stores on Offers: applications, code and totals for the same cart, as in the quote. null when the store isn't on Offers."
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        advance:
+          description: The checkout's advance, paid once. null = plain COD.
+          oneOf:
+            - type: object
+              properties:
+                amount: { type: number }
+                on_delivery: { type: number }
+                total: { type: number }
+                basis: { type: string }
+                required: { type: boolean }
+                full: { type: boolean }
+            - type: 'null'
+        payable:
+          type: object
+          properties:
+            total: { type: number }
+
+    CheckoutPlanStale:
+      type: object
+      properties:
+        message: { type: string, examples: ['Your delivery details changed. Please check the new total.'] }
+        error_code: { type: string, const: CHECKOUT_PLAN_STALE }
+        plan: { $ref: '#/components/schemas/CheckoutPlan' }
+
+    CheckoutGroupRef:
+      type: object
+      description: On the order response
+      properties:
+        id: { type: string }
+        count: { type: integer }
+        reason: { type: string, examples: [outlet] }
+
+    CheckoutGroup:
+      type: object
+      description: On an order
+      properties:
+        id: { type: string }
+        index: { type: integer, description: "1-based" }
+        count: { type: integer }
+        reason: { type: string, examples: [outlet] }
+
+    CheckoutOrderRow:
+      type: object
+      properties:
+        _id: { type: string }
+        order_number: { type: [string, number] }
+        index: { type: integer }
+        outlet:
+          type: object
+          properties:
+            _id: { type: string }
+            name: { type: string }
+        total: { type: number }
+        delivery_charge: { type: number }
+        advance_due: { type: number }
+        amount_to_pay: { type: number }
+        status: { type: string }
+
+    LinkedOrder:
+      type: object
+      properties:
+        _id: { type: string }
+        order_number: { type: [string, number] }
+        index: { type: integer }
+        outlet_name: { type: string }
+        status: { type: string }
+        payment_status: { type: string }
+        total: { type: number }
+        delivery_charge: { type: number }
+
+    PaymentCheckoutGroup:
+      type: string
+      description: Split checkout only. The checkout_group id the payment covers.
+
+    PaymentGroupOrders:
+      type: array
+      description: Split checkout only. Each order's share of the one payment.
+      items:
+        type: object
+        properties:
+          _id: { type: string }
+          order_number: { type: [string, number] }
+          amount: { type: number }
 
     MetaEvent:
       type: object
