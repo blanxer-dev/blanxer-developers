@@ -15,6 +15,7 @@
         { "slug": "store-and-theme", "nav": "Store and theme" },
         { "slug": "catalog", "nav": "Catalog" },
         { "slug": "checkout", "nav": "Checkout" },
+        { "slug": "pooled-stock", "nav": "Selling from several stores" },
         { "slug": "forms-and-extras", "nav": "Forms and extras" },
         { "slug": "seo-and-tracking", "nav": "SEO and tracking" },
         { "slug": "images-and-speed", "nav": "Images and speed" },
