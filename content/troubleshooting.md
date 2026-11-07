@@ -108,7 +108,7 @@ On a store with Offers, the site worked the prices out itself, or showed the cat
 
 ### The delivery charge on the page differs from the order (several parcels)
 
-The store sells from several stores (`check_domain.online_fulfilment.checkout_plan` is true) and the site worked delivery out from the delivery table. On such a store each shop has its own charge, and the server charges what the checkout plan says. Price the checkout with `POST /order/public/checkout-plan`, send its `plan_id` as `checkout_plan_id`, and show `delivery_label` and `payable.total`. The package does this from the release after 0.4.0. An HTTP 409 `CHECKOUT_PLAN_STALE` means the plan expired (30 minutes) or the cart changed: show the fresh `plan` it carries and let the shopper place again. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md).
+The store sells from several stores (`check_domain.online_fulfilment.checkout_plan` is true) and the site worked delivery out from the delivery table. On such a store each shop has its own charge, and the server charges what the checkout plan says. Price the checkout with `POST /order/public/checkout-plan`, send its `plan_id` as `checkout_plan_id`, and show `delivery_label` and `payable.total`. The package does this from 0.5.0. An HTTP 409 `CHECKOUT_PLAN_STALE` means the plan expired (30 minutes) or the cart changed: show the fresh `plan` it carries and let the shopper place again. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md).
 
 ### A gift doesn't appear
 

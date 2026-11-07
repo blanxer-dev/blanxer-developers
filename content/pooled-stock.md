@@ -1,6 +1,6 @@
 # Selling from several stores
 
-> **Most stores never use this.** A store that sells online from several of its shops ("pooled stock") has it switched on by Blanxer support. Every other store works exactly as the rest of these docs say: **don't change anything on a site whose store isn't pooled.** The `Checkout` of `@blanxer-dev/storefront` does everything below from the release after 0.4.0 (see [The package](#the-package)). This page documents what it does, so you can theme it, debug it and explain it to the merchant.
+> **Most stores never use this.** A store that sells online from several of its shops ("pooled stock") has it switched on by Blanxer support. Every other store works exactly as the rest of these docs say: **don't change anything on a site whose store isn't pooled.** The `Checkout` of `@blanxer-dev/storefront` does everything below from 0.5.0 (see [The package](#the-package)). This page documents what it does, so you can theme it, debug it and explain it to the merchant.
 
 A pooled store is on the Platinum plan with advanced inventory and has at least two shops that can ship. Blanxer support allows it per store; the merchant then picks the shops and the display in Blanxer (Setting → Checkout → Store pickup & fulfilment). From then on:
 
@@ -232,7 +232,7 @@ On the success and tracking page of a split checkout, list every order with its 
 
 ## The package
 
-The package release after 0.4.0 does all of this by itself on a pooled store, and nothing on any other store. Update to it **before** Blanxer support switches the store to pooled. Names in that release:
+Package 0.5.0 does all of this by itself on a pooled store, and nothing on any other store (it needs the Blanxer backend from the multi-outlet release; older backends send no `online_fulfilment`). Update to it **before** Blanxer support switches the store to pooled. Names in 0.5.0:
 
 | Where | Name | What |
 |---|---|---|
@@ -246,10 +246,10 @@ The package release after 0.4.0 does all of this by itself on a pooled store, an
 | `/client` | `cancelOrder({ …, scope })` | Cancel one parcel or the whole checkout |
 | `/react` | `useCheckoutPlan`, `<PlanParcels>`, `<PlanNotice>` | The plan in the checkout, "Arrives in 2 parcels" in the summary, the "your total changed" note |
 | `/react` | `<CheckoutParcels>` | Every order of a split checkout on the success / tracking page |
-| `/react` | `useStoreAvailability`, `<StoreAvailabilityLine>` | "Available at Pokhara, Butwal" on the product page |
+| `/react` | `<AddToCart showStores>`, `useStoreAvailability`, `<StoreAvailabilityLine>` | "Available at Pokhara, Butwal (few left)" on the product page |
 | Types | `OnlineFulfilment`, `CheckoutPlan`, `StoreAvailability`, `CheckoutGroup`, `LinkedOrder` | `Store.online_fulfilment`; `OrderResponse.checkout_group / orders / plan_changed`; `PublicOrder.checkout_group / linked_orders` |
 
-`Checkout`, `OrderTracking` and the product components use these on their own. Restyle them through the `bx-plan-*`, `bx-checkout-parcels` and `bx-store-availability` classes.
+`Checkout`, `OrderTracking` and the product components use these on their own. Restyle them through the `bx-plan-*`, `bx-checkout-parcels`, `bx-store-availability` and `bx-cancel-scope` classes. On a store with Offers, the checkout keeps the quote's goods and offers and takes delivery, cash on delivery, advance and total from the plan.
 
 ## An older site on a pooled store
 
