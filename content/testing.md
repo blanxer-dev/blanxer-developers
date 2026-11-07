@@ -28,6 +28,8 @@ returns HTTP 200 `{"success": true}` and **creates no order**: no stock change, 
 
 Use it for the form, the place select, delivery charges, COD availability per place, coupons or offers (apply a code, check the cart and checkout totals), and that the request leaves from the browser (rule 5).
 
+On a store that sells from several stores, the checkout's parcels, delivery and total come from the checkout plan, which holds nothing: check them in the checkout before placing the test order. A test order creates nothing, so it can't show the order numbers of a split checkout. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md).
+
 ### Offers
 
 On a store with Offers (`GET /public/promotions/<store_id>` says `enabled: true`), check in the cart and the checkout:

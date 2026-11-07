@@ -122,6 +122,7 @@ Client components and hooks. **Unstyled by default**: each element has a `bx-*` 
 | `<BlanxerForm form>` | A Blanxer custom form (from `getForm()`) |
 | `<StockAlertForm product variantId?>` | Back-in-stock "Notify me" (alias `BackInStockForm`) |
 | `<PickupChoice>` + `usePickupStock(on, lines)` | Store pickup: "How do you want it?" and the pickup outlets with what each has of the cart (0.4+, see Checkout → Store pickup). `Checkout` shows it by itself |
+| `useCheckoutPlan`, `<PlanParcels>`, `<CheckoutParcels>`, `<StoreAvailabilityLine>` | Stores selling from several stores (the release after 0.4.0): the server's checkout plan, "Arrives in 2 parcels", every order of a split checkout, "Available at Pokhara, Butwal". `Checkout` and `OrderTracking` use them by themselves; they render nothing on other stores. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#the-package) |
 | `<Pixel>` | Meta Pixel, GA4, GTM and Clarity from the store's plugins |
 | `<Money amount>`, `useMoney()`, `<BlanxerImage>` | Prices with the store's currency label; `next/image` with the Blanxer loader |
 
@@ -313,4 +314,4 @@ Resizes images (never enlarges; default max width 2560, `--max-width` to change 
 
 ## Versions
 
-The checkout is versioned: checkout v1 matches Blanxer's storefront `main` at `cabd695` (stock holds and flash sales included). Package 0.2.0 adds Offers to the cart, checkout and tracking; a site on 0.1.x still places orders on a store with Offers (the server applies the offers), but its cart doesn't show them, so the price on the page differs from the order. Update to 0.2.0. Partial payment and agreed delivery are not in the package yet. Update the package to get checkout fixes; the site code doesn't change.
+The checkout is versioned: checkout v1 matches Blanxer's storefront `main` at `cabd695` (stock holds and flash sales included). Package 0.2.0 adds Offers to the cart, checkout and tracking; a site on 0.1.x still places orders on a store with Offers (the server applies the offers), but its cart doesn't show them, so the price on the page differs from the order. Update to 0.2.0. Partial payment and agreed delivery are not in the package yet. Stores selling from several stores need the release after 0.4.0 ([Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#the-package)); other stores don't. Update the package to get checkout fixes; the site code doesn't change.

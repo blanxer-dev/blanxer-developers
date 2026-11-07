@@ -122,6 +122,7 @@ POST /order/public/cancel
 - Wrong phone: HTTP **401** `{"fields":{"phone_number":"Provided phone number don't match with order phone number"}}`. The phone is checked before the status, so a wrong phone on a Delivered order is also 401.
 - Other errors (HTTP 400 `{message}`): `Store not found`, `Order cancellation is not available`, `Order not found`, `Only orders in Pending or Processing status can be cancelled`.
 - Cancelling puts the stock back and sends the store's cancellation SMS if it has one.
+- **A checkout split into several orders** (stores selling from several stores; the tracking read has `linked_orders`): send `scope: 'order'` (the default, only this parcel) or `scope: 'group'` (every parcel), and ask the shopper which. An unpaid online checkout always cancels whole. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#success-page-tracking-and-cancel).
 - Ask "Are you sure you want to cancel this order? This action cannot be undone." first.
 
 ## Review a product

@@ -19,6 +19,8 @@ The server re-checks the order. Prices, stock, delivery charges, COD, offers and
 
 Everything in steps 3–6 runs in the browser (rule 5).
 
+A store that sells online from several of its shops (`check_domain.online_fulfilment.checkout_plan` is true) prices the checkout with the server's checkout plan instead of the delivery table, and one checkout can become several orders. Blanxer support switches it on per store; nothing changes for any other store. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md).
+
 ## What the checkout needs
 
 | Input | From | Notes |
@@ -120,6 +122,7 @@ The package's `Checkout` always renders this line under the place-order button:
 - **Charge** = `place[index + 2]`; if that is below 0, `defaults[index]`.
 - **COD is allowed for a place when `cod === true || cod === 'Y'`.** That is the server's rule. The Blanxer storefront uses `!!cod`, which treats `'N'` as yes; don't copy that.
 - The place name must match exactly. An unknown place fails the order with `Selected delivery city not found, please try again`.
+- **A pooled store** (`online_fulfilment.checkout_plan`) charges delivery per shop, so these rules don't give its charge: use the checkout plan ([Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#the-checkout-plan)). Every other store keeps these rules.
 
 ```ts
 type DeliveryTable = { defaults: number[]; places: [string, boolean | string, ...number[]][] };
@@ -501,6 +504,7 @@ interface OrderRequest {
   gift_choices?: Record<string, string>; // Offers stores: { [offer id]: 'productId|variantId' }
   fulfilment?: 'delivery' | 'pickup'; // store pickup, see "Store pickup" below (missing = delivery)
   pickup_outlet?: string;            // the pickup outlet's _id, with fulfilment 'pickup'
+  checkout_plan_id?: string;         // pooled stores: the checkout plan's plan_id, see "Selling from several stores"
 }
 ```
 
@@ -544,7 +548,7 @@ A product can have a print add-on (`print_addon` on the product): the shopper pi
 3. Email and sender email when the store requires them (HTTP 401, see the table above).
 4. Lines with an empty `product` are dropped; if none is left: `Product is required`. Every product exists in this store and is `Active`, else `Either of the selected product is already deleted`.
 5. A product with variants has a `variant`, else `Variant selection required for this product`; the print choice (see above); the variant exists, else `Either of the selected product has been modified, please add to cart again`.
-6. Stock, unless the product has `continue_selling`: `Either of the selected product is out of stock`. Stores with advanced inventory are checked against the website outlet's stock (a store pickup: the pickup outlet's).
+6. Stock, unless the product has `continue_selling`: `Either of the selected product is out of stock`. Stores with advanced inventory are checked against the website outlet's stock (a store pickup: the pickup outlet's; a pooled store: the pool's).
 7. Live flash sale limits: `Flash sale: you can buy at most N of "<name>" per order.`
 8. The stock hold. When the last units sit in other shoppers' checkouts: `The last units of an item in your cart are in other shoppers' checkouts right now. Please try again in about N minutes.`
 9. The delivery place and COD (messages above).
@@ -576,6 +580,7 @@ Prices are the server's: the variant's price if it has one, else the product's. 
 - `total_price` = products + customization charges − discount. **It does not include delivery.** The shopper pays `total_price + delivery_charge`.
 - On an Offers store the response also has `offers`: `{ applications, code, totals }` (see [Offers](#the-order-on-an-offers-store)).
 - `hold_seconds` and `hold_expires_at` come only for online orders that hold stock.
+- On a pooled store the top-level fields describe the whole checkout (`_id` and `order_number` are parcel 1's), and the response adds `checkout_group`, `plan_changed` and `orders[]`. A stale plan is HTTP 409 `CHECKOUT_PLAN_STALE` with a fresh `plan`. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#placing-the-order).
 - `slug` is always `''`.
 - COD orders are created as `Pending`. Online orders are created as `Inactive` with `payment_status` `Unpaid`; it becomes `Processing` when a payment starts, and the order becomes `Pending` / `Paid` when the payment is confirmed.
 
@@ -643,6 +648,7 @@ The API checks the order belongs to the store, creates a payment transaction for
 - eSewa, Khalti, FonePay (and the unused card route) validate `url` with a strict URL check that **rejects `http://localhost:3000`**: HTTP 400 `{"fields":{"url":"Valid Return URL is required"}}`. Use `http://127.0.0.1:3000` locally, or test on the deployed site.
 - QR, Checkout by Fonepay, NPX and Nabil card accept `localhost`. Their bad-URL error is `{"error_type":"zod_validation","fields":{"url":"Invalid url"}}`.
 - If the gateway's verification fails, the API sets `payment_status` to `Failed`; the order stays `Inactive`.
+- On a pooled store, a checkout split into several orders is paid once: start the payment with any of its order ids (or `checkout_group`) and it charges the whole checkout. See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#paying).
 
 ### COD
 
@@ -815,6 +821,7 @@ Show "Payment for your order failed" and "However, you might receive call/sms so
 | `product_total_price`, `delivery_charge`, `customization_total`, `discount` (the full object: `d_value`, `code`, ...), `partial_payment_amount` | Total = `product_total_price + delivery_charge + customization_total − discount.d_value` |
 | `promotions[]`, `promo_total`, `delivery_charge_before_promo`; per line `promo_discount`, `promo_allocations`, `free_qty` | Orders priced by Offers only. `promotions` lists each offer (`title`, `code`, `kind`, `class`, `amount`); the product and order offers are already inside `discount.d_value`, and a delivery offer already lowered `delivery_charge` (from `delivery_charge_before_promo`) |
 | `store` | The store id |
+| `checkout_group`, `linked_orders` | Pooled stores: the checkout this order is part of and its other orders (`[]` when not split). See [Selling from several stores](https://developers.blanxer.com/api-docs/pooled-stock.md#success-page-tracking-and-cancel) |
 | `review` | `{count, total_rating, received: [product ids], reviews: [ids]}` |
 | `reviews[]` | `product`, `images`, `review`, `rating` |
 
