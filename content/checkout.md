@@ -23,7 +23,7 @@ Everything in steps 3–6 runs in the browser (rule 5).
 
 | Input | From | Notes |
 |---|---|---|
-| Store config | `GET /store/check_domain?domain=<subdomain>` | `_id`, `plan`, `addons`, `setting`, `checkout`. Load it on the server. (The hosted storefront uses `POST /store/check_domain?d=<domain>` with body `{domain}`; both return the same.) |
+| Store config | `GET /store/check_domain?domain=<subdomain>` | `_id`, `plan`, `plan_info`, `addons`, `setting`, `checkout`. Load it on the server. (The hosted storefront uses `POST /store/check_domain?d=<domain>` with body `{domain}`; both return the same.) |
 | Delivery table | `GET /public/delivery_charge/<store_id>` | Load it on the server and pass it as `delivery`. |
 | Cart lines | The browser, `localStorage['cart_items']` | Only the selected lines are ordered (`localStorage['cart_selection']`). |
 | `url` | `window.location.origin` | No trailing slash. Never hardcode it (rule 4). |
@@ -143,7 +143,7 @@ export function deliveryFor(table: DeliveryTable, place: string, weightKg: numbe
 The list is built from the store config. **Never add or remove a method by hand (rule 9).**
 
 - **COD** is offered when the chosen place allows it (see above). It comes first.
-- **Online methods** are offered only when `plan` is one of `basic`, `premium`, `plus`, `platinum`. On any other plan (free) the checkout is COD only.
+- **Online methods** are offered only when `plan_info.features.online_payments` is true. When `plan_info` is absent (older backends), that is when `plan` is one of `basic`, `premium`, `plus`, `platinum`, `elite`. On any other plan (free, or the POS plan) the checkout is COD only.
 
 In this order:
 
@@ -586,7 +586,7 @@ Right after a successful response the component stores, in `sessionStorage`:
 
 ## Store pickup
 
-Stores on the Platinum plan with advanced inventory can let shoppers collect an order at an outlet (Setting → Checkout → Store pickup). One outlet is enough: a one-shop store offers pickup at its shop, so `store_pickup.outlets` can hold a single outlet. Show it the same way (the shopper still picks it). The `Checkout` component of `@blanxer-dev/storefront` 0.4+ does all of this; read on if you build your own.
+Stores on the Business Plus, Platinum or Elite plan with advanced inventory can let shoppers collect an order at an outlet (Setting → Checkout → Store pickup). One outlet is enough: a one-shop store offers pickup at its shop, so `store_pickup.outlets` can hold a single outlet. Show it the same way (the shopper still picks it). The `Checkout` component of `@blanxer-dev/storefront` 0.4+ does all of this; read on if you build your own.
 
 **Is it on?** `check_domain` returns:
 
