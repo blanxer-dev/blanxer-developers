@@ -1505,7 +1505,6 @@ components:
             customer_login: { type: boolean }
             loyalty: { type: boolean }
             premium_sections: { type: boolean }
-            accounting: { type: boolean }
             e_billing: { type: boolean }
           additionalProperties: true
 
