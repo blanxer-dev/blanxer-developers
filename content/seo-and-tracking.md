@@ -93,7 +93,7 @@ Use Next.js `generateMetadata`. The package's `storeMetadata`, `productMetadata`
 
 Where the Blanxer-hosted storefront differs: its product `<title>` is the name (`seo_title` only for `og:title`), its category description falls back to `top_bar_text`, and its brand title has no brand-name fallback (the package's fallback is an improvement).
 
-- Home SEO comes from the store's landing page (`GET /public/landing/<store_id>`, read by `getHomeSeo()`). Only stores on a page-builder plan have one; otherwise the store name and description are used.
+- Home SEO comes from the store's landing page (`GET /public/landing/<store_id>`, read by `getHomeSeo()`). Only stores on a website plan (`basic`, `premium`, `plus`, `platinum`, `elite`) have one; otherwise the store name and description are used.
 - The brand page's SEO fields come from `GET /brand/public/products/<store_id>/<slug>` as `brand.page.seo_title`, `seo_description`, `seo_image`.
 - Every page: `og:site_name` = the store name, `og:type` (`website`, `product`, `article`), `twitter:card` = `summary_large_image`, and a canonical URL `<origin><path>` without query strings (except `/blogs?category=`).
 - `noindex` on `/cart`, `/checkout`, `/payment/success`, `/payment/failed`, `/track/[id]`, `/search`, and blog posts with `no_index`.

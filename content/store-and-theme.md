@@ -23,7 +23,8 @@ In the site: `getStore()` and `getStoreId()` from `@blanxer-dev/storefront/serve
 | `name`, `description`, `display_image` | Store name, one-line description, an image |
 | `sub_domain`, `custom_domain` | `mystore`, and the Blanxer custom domain if any |
 | `storefront_url` | The saved link to the custom site, `''` when none. See [Deploy → Link the site](https://developers.blanxer.com/api-docs/deploy-cloudflare.md#link-the-site-to-blanxer). |
-| `plan` | `''` (free), `pos`, `basic`, `premium`, `plus`, `platinum`. Online payments need `basic`, `premium`, `plus` or `platinum`. |
+| `plan` | `''` (free), `premium`, `plus` (Business Plus), `platinum`, `elite`, and two that are no longer on the pricing page: `basic` (its stores keep it) and `pos` (POS only, no website). Online payments need `basic`, `premium`, `plus`, `platinum` or `elite`. |
+| `plan_info` | What the plan gives this store: `{ plan, name, active, legacy, on_sale, qr_fee, ai_level, features }`. Read `plan_info.features.online_payments`, `features.store_pickup` and so on; use the `plan` list above only when `plan_info` is absent (older backends). `legacy` is true for a store created before the 2026 pricing: it keeps everything its plan could do before, and `features` already says so. |
 | `customization` | Logo, name, theme colour, font, currency label, top bar, popup, hero images (below) |
 | `navigation`, `footer` | Menu items and footer content as set in Blanxer |
 | `categories[]` | `_id`, `name`, `slug`, `image`, `order`, `seo_title`, `seo_description`, `seo_image`, `hide_on_product` |
