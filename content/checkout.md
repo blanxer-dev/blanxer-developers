@@ -143,7 +143,7 @@ export function deliveryFor(table: DeliveryTable, place: string, weightKg: numbe
 The list is built from the store config. **Never add or remove a method by hand (rule 9).**
 
 - **COD** is offered when the chosen place allows it (see above). It comes first.
-- **Online methods** are offered only when `plan_info.features.online_payments` is true. When `plan_info` is absent (older backends), that is when `plan` is one of `basic`, `premium`, `plus`, `platinum`, `elite`. On any other plan (free, or the POS plan) the checkout is COD only.
+- **Online methods** are offered only when `plan_info.features.online_payments` is true. When `plan_info` is absent (older backends), that is when `plan` is one of `basic`, `premium`, `plus`, `platinum`, `elite`, `enterprise`. On any other plan (free, or the POS plan) the checkout is COD only.
 
 In this order:
 

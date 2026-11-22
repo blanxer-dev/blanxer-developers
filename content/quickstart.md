@@ -54,7 +54,7 @@ Show the merchant:
 - the store name and plan;
 - the product count (`GET /product/public/<store_id>` returns all active products);
 - the payment methods the checkout will offer (see [Checkout → Payment methods](https://developers.blanxer.com/api-docs/checkout.md#payment-methods));
-- **No online payments** (`plan_info.features.online_payments` is false; when `plan_info` is absent, `plan` not one of `basic`, `premium`, `plus`, `platinum`, `elite`): the checkout is Cash on Delivery only. That is free stores and the POS plan;
+- **No online payments** (`plan_info.features.online_payments` is false; when `plan_info` is absent, `plan` not one of `basic`, `premium`, `plus`, `platinum`, `elite`, `enterprise`): the checkout is Cash on Delivery only. That is free stores and the POS plan;
 - **Store with customer login turned on** (`customer_program.enabled`): the custom site still uses guest checkout. BlanxerAPI has no login.
 
 Then run `blanxer_audit_seo` (the MCP is already connected from the start of this step). Also check the catalog for products with no photo, no price, no category or no SEO text. Show the gaps.
