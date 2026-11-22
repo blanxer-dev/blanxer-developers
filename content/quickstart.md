@@ -47,14 +47,14 @@ Look the store up by subdomain (or custom domain):
 curl -s "https://api.blanxer.com/store/check_domain?domain=mystore"
 ```
 
-You get the store config, including `_id` (the store id every other call needs), `name`, `plan`, `addons`, `checkout`, `customization` and `categories`. An unknown domain returns HTTP 400 `{"message":"Domain not in use"}`. Field by field: [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md).
+You get the store config, including `_id` (the store id every other call needs), `name`, `plan`, `plan_info`, `addons`, `checkout`, `customization` and `categories`. An unknown domain returns HTTP 400 `{"message":"Domain not in use"}`. Field by field: [Store and theme](https://developers.blanxer.com/api-docs/store-and-theme.md).
 
 Show the merchant:
 
 - the store name and plan;
 - the product count (`GET /product/public/<store_id>` returns all active products);
 - the payment methods the checkout will offer (see [Checkout → Payment methods](https://developers.blanxer.com/api-docs/checkout.md#payment-methods));
-- **Free plan** (`plan` not one of `basic`, `premium`, `plus`, `platinum`): the checkout is Cash on Delivery only;
+- **No online payments** (`plan_info.features.online_payments` is false; when `plan_info` is absent, `plan` not one of `basic`, `premium`, `plus`, `platinum`, `elite`, `enterprise`): the checkout is Cash on Delivery only. That is free stores and the POS plan;
 - **Store with customer login turned on** (`customer_program.enabled`): the custom site still uses guest checkout. BlanxerAPI has no login.
 
 Then run `blanxer_audit_seo` (the MCP is already connected from the start of this step). Also check the catalog for products with no photo, no price, no category or no SEO text. Show the gaps.

@@ -1265,7 +1265,7 @@ paths:
       description: |
         A custom site reads only `seo_title`, `seo_description` and `seo_image` for the home
         page metadata (the package's `getHomeSeo()`); it doesn't render the page-builder
-        sections. Stores without a page-builder plan, or with an empty landing page, get
+        sections. Stores without a website plan (basic, premium, plus, platinum, elite, enterprise), or with an empty landing page, get
         `{basic: true, products}` and no SEO fields. Unknown store: HTTP 400 `Store not found`.
         Cached by the API for up to 1 hour.
       parameters:
@@ -1476,6 +1476,44 @@ components:
         success: { type: boolean }
         message: { type: string }
 
+    PlanInfo:
+      type: object
+      description: >-
+        What the store's plan gives it. Absent on older backends: then fall back to the `plan` id
+        (online payments on basic, premium, plus, platinum, elite, enterprise).
+      properties:
+        plan: { type: string, enum: ['', premium, plus, platinum, elite, enterprise, basic, pos], description: "The plan id, '' for free or an unknown id" }
+        name: { type: string, description: "Premium, Business Plus, Platinum, Elite, Enterprise, Basic, POS or Free" }
+        active: { type: boolean, description: "False for the free plan" }
+        legacy: { type: boolean, description: "True for a store created before the 2026 pricing; it keeps everything its plan could do before" }
+        on_sale: { type: boolean, description: "False for basic, pos, enterprise and free" }
+        qr_fee: { type: number, description: "Blanxer's fee on Blanxer Pay / Fonepay QR payments: 0.03 premium and plus, 0.0275 platinum, elite and enterprise, 0.039 otherwise" }
+        ai_level: { type: string, enum: [none, fair, decent, high] }
+        addons:
+          type: array
+          items: { type: string, enum: [advanced_inventory, multi_warehouse] }
+          description: >-
+            Features Blanxer gave this store on top of its plan. Each is already true in `features`,
+            so nothing needs to read this list to decide what the store can do. Empty for most stores.
+        features:
+          type: object
+          description: The store's own answer (its plan, what a store from before the new pricing keeps, and its add-ons). Check these, not the plan id.
+          properties:
+            website: { type: boolean }
+            online_payments: { type: boolean, description: "False = the checkout is Cash on Delivery only (free stores and the POS plan)" }
+            ai_agent: { type: boolean }
+            analytics_full: { type: boolean }
+            advanced_inventory: { type: boolean }
+            store_pickup: { type: boolean }
+            pos: { type: boolean }
+            multi_branch: { type: boolean }
+            multi_warehouse: { type: boolean }
+            customer_login: { type: boolean }
+            loyalty: { type: boolean }
+            premium_sections: { type: boolean }
+            e_billing: { type: boolean }
+          additionalProperties: true
+
     Store:
       type: object
       description: Store config from check_domain (fields a custom site uses)
@@ -1487,7 +1525,15 @@ components:
         sub_domain: { type: string }
         custom_domain: { type: string }
         storefront_url: { type: string, description: "The saved custom-site origin, '' when none" }
-        plan: { type: string, description: "'' (free), pos, basic, premium, plus, platinum" }
+        plan:
+          type: string
+          enum: ['', premium, plus, platinum, elite, enterprise, basic, pos]
+          description: >-
+            '' (free), premium, plus (Business Plus), platinum, elite. Not on the pricing page:
+            enterprise (a plan agreed with Blanxer, everything Elite has), basic (its stores keep
+            it) and pos (POS only, no website). Read `plan_info.features`
+            for what the store can do; use this id only when `plan_info` is absent.
+        plan_info: { $ref: '#/components/schemas/PlanInfo' }
         under_construction: { type: string, enum: ['off', sub, cus, both], description: "Blanxer-hosted site only" }
         use_advanced_inventory: { type: boolean }
         checkout:
